@@ -27,21 +27,23 @@ function App() {
         </div>
       </div>
 
-      <main className="mx-auto grid max-w-6xl gap-6 px-6 pb-16 pt-8 md:grid-cols-3">
-        <section className="space-y-4">
-          <h2 className="font-display text-lg font-semibold text-ink-100">Ejercicios</h2>
-          <ExerciseList />
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="font-display text-lg font-semibold text-ink-100">Rutinas</h2>
-          <RoutineManager />
-        </section>
-
+      <main className="mx-auto max-w-6xl space-y-8 px-6 pb-16 pt-8">
         <section className="space-y-4">
           <h2 className="font-display text-lg font-semibold text-ink-100">Player</h2>
           <PlayerView />
         </section>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <section className="space-y-4">
+            <h2 className="font-display text-lg font-semibold text-ink-100">Ejercicios</h2>
+            <ExerciseList />
+          </section>
+
+          <section className="space-y-4">
+            <h2 className="font-display text-lg font-semibold text-ink-100">Rutinas</h2>
+            <RoutineManager />
+          </section>
+        </div>
       </main>
     </div>
   )

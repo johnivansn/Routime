@@ -10,15 +10,21 @@ export function ExerciseCard({ exercise, onDelete }: ExerciseCardProps) {
   return (
     <div className="flex flex-col gap-3 rounded-3xl border border-ink-700 bg-ink-800/70 p-4">
       <div className="aspect-video overflow-hidden rounded-2xl bg-ink-900">
-        <video
-          src={exercise.videoUrl}
-          className="h-full w-full object-cover"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="metadata"
-        />
+        {exercise.videoUrl ? (
+          <video
+            src={exercise.videoUrl}
+            className="h-full w-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-xs text-ink-500">
+            Sin video
+          </div>
+        )}
       </div>
       <div className="flex items-center justify-between gap-2">
         <div>

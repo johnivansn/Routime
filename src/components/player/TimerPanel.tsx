@@ -16,13 +16,15 @@ export function TimerPanel() {
   const [state, setState] = useState<PlayerState>('IDLE')
   const [voiceEnabled, setVoiceEnabled] = useState(true)
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const [voiceVolume, setVoiceVolume] = useState(0.9)
+  const [voiceVolume, setVoiceVolume] = useState(1)
   const [soundVolume, setSoundVolume] = useState(0.18)
+  const voiceTestTimeoutRef = useRef<number | null>(null)
+  const soundTestTimeoutRef = useRef<number | null>(null)
 
   const resetDefaults = () => {
     setVoiceEnabled(true)
     setSoundEnabled(true)
-    setVoiceVolume(0.9)
+    setVoiceVolume(1)
     setSoundVolume(0.18)
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem('routime:voiceEnabled')
@@ -256,7 +258,23 @@ export function TimerPanel() {
             max={1}
             step={0.05}
             value={voiceVolume}
-            onChange={(event) => setVoiceVolume(Number(event.target.value))}
+            onChange={(event) => {
+              const value = Number(event.target.value)
+              setVoiceVolume(value)
+              if (voiceEnabled && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+                if (voiceTestTimeoutRef.current) {
+                  window.clearTimeout(voiceTestTimeoutRef.current)
+                }
+                const timeoutId = window.setTimeout(() => {
+                  const utterance = new SpeechSynthesisUtterance('Prueba de volumen')
+                  utterance.lang = 'es-ES'
+                  utterance.volume = Math.min(Math.max(value, 0), 1)
+                  window.speechSynthesis.cancel()
+                  window.speechSynthesis.speak(utterance)
+                }, 200)
+                voiceTestTimeoutRef.current = timeoutId
+              }
+            }}
             className="w-full accent-accent-500"
           />
         </label>
@@ -268,7 +286,24 @@ export function TimerPanel() {
             max={0.6}
             step={0.02}
             value={soundVolume}
-            onChange={(event) => setSoundVolume(Number(event.target.value))}
+            onChange={(event) => {
+              const value = Number(event.target.value)
+              setSoundVolume(value)
+              if (soundEnabled) {
+                if (soundTestTimeoutRef.current) {
+                  window.clearTimeout(soundTestTimeoutRef.current)
+                }
+                const timeoutId = window.setTimeout(() => {
+                  void soundRef.current.beep({
+                    frequency: 720,
+                    durationMs: 160,
+                    volume: Math.min(Math.max(value, 0), 0.6),
+                    type: 'sine',
+                  })
+                }, 200)
+                soundTestTimeoutRef.current = timeoutId
+              }
+            }}
             className="w-full accent-ember-500"
           />
         </label>

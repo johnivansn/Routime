@@ -12,6 +12,7 @@ type PlayerOptions = {
   soundEnabled: boolean
   voiceVolume: number
   soundVolume: number
+  voiceName?: string | null
 }
 
 export function usePlayer(routine: Routine | null, options: PlayerOptions) {
@@ -22,6 +23,8 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
 
   const timerRef = useRef<TimerEngine | null>(null)
+  const indexRef = useRef(0)
+  const activeIntervalIdRef = useRef<string | null>(null)
   const voiceRef = useRef(new VoiceService())
   const soundRef = useRef(new SoundService())
   const lastBeepSecondRef = useRef<number | null>(null)
@@ -53,9 +56,11 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
       }
       setCurrentExercise(exercise)
       clearVideoUrl()
-      const url = URL.createObjectURL(exercise.videoFile)
-      currentVideoUrlRef.current = url
-      setVideoUrl(url)
+      if (exercise.videoFile) {
+        const url = URL.createObjectURL(exercise.videoFile)
+        currentVideoUrlRef.current = url
+        setVideoUrl(url)
+      }
       return exercise
     },
     [clearVideoUrl]
@@ -66,28 +71,36 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
       if (!interval) return
       if (interval.type === 'REST') {
         if (options.voiceEnabled) {
-          voiceRef.current.speak('Descanso', 'es-ES', options.voiceVolume)
+          voiceRef.current.setPreferredVoiceByName(options.voiceName)
+          voiceRef.current.speak(interval.label ?? 'Descanso', 'es-ES', options.voiceVolume)
         }
         return
       }
       const exercise = await loadExercise(interval)
       if (exercise && options.voiceEnabled) {
-        voiceRef.current.speak(exercise.name, 'es-ES', options.voiceVolume)
+        voiceRef.current.setPreferredVoiceByName(options.voiceName)
+        const detail = interval.label ? ` - ${interval.label}` : ''
+        const announcement = `${exercise.name}${detail}`
+        voiceRef.current.speak(announcement, 'es-ES', options.voiceVolume)
       }
     },
-    [loadExercise, options.voiceEnabled, options.voiceVolume]
+    [loadExercise, options.voiceEnabled, options.voiceName, options.voiceVolume]
   )
 
   const stopTimer = useCallback(() => {
     timerRef.current?.stop()
     timerRef.current = null
     lastBeepSecondRef.current = null
+    activeIntervalIdRef.current = null
   }, [])
 
   const startInterval = useCallback(
     async (interval: Interval | undefined) => {
       if (!interval) return
+      stopTimer()
       lastBeepSecondRef.current = null
+      activeIntervalIdRef.current = interval.id
+      setTimeRemaining(interval.duration)
 
       if (options.soundEnabled) {
         await soundRef.current.unlock()
@@ -113,8 +126,11 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
           }
         },
         () => {
-          if (currentIndex < intervals.length - 1) {
-            setCurrentIndex((prev) => prev + 1)
+          const current = indexRef.current
+          if (current < intervals.length - 1) {
+            const nextIndex = current + 1
+            setCurrentIndex(nextIndex)
+            setTimeRemaining(intervals[nextIndex]?.duration ?? 0)
           } else {
             setState('COMPLETED')
             setTimeRemaining(0)
@@ -137,12 +153,13 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
     },
     [
       announceInterval,
-      currentIndex,
       intervals.length,
+      intervals,
       options.soundEnabled,
       options.soundVolume,
       options.voiceEnabled,
       options.voiceVolume,
+      stopTimer,
     ]
   )
 
@@ -150,8 +167,7 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
     if (!routine || !currentInterval) return
     if (state === 'PLAYING') return
     setState('PLAYING')
-    await startInterval(currentInterval)
-  }, [currentInterval, routine, startInterval, state])
+  }, [currentInterval, routine, state])
 
   const pause = useCallback(() => {
     timerRef.current?.pause()
@@ -167,18 +183,25 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
     stopTimer()
     setState(routine ? 'READY' : 'IDLE')
     setCurrentIndex(0)
-    setTimeRemaining(currentInterval?.duration ?? 0)
-  }, [currentInterval?.duration, routine, stopTimer])
+    setTimeRemaining(routine?.intervals[0]?.duration ?? 0)
+  }, [routine, stopTimer])
 
   const skip = useCallback(() => {
     stopTimer()
     if (currentIndex < intervals.length - 1) {
-      setCurrentIndex((prev) => prev + 1)
+      const nextIndex = currentIndex + 1
+      setCurrentIndex(nextIndex)
+      setTimeRemaining(intervals[nextIndex]?.duration ?? 0)
       setState('PLAYING')
     } else {
       setState('COMPLETED')
+      setTimeRemaining(0)
     }
-  }, [currentIndex, intervals.length, stopTimer])
+  }, [currentIndex, intervals, stopTimer])
+
+  useEffect(() => {
+    indexRef.current = currentIndex
+  }, [currentIndex])
 
   useEffect(() => {
     if (!routine) {
@@ -197,8 +220,10 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
   }, [clearVideoUrl, loadExercise, routine, stopTimer])
 
   useEffect(() => {
-    if (state === 'PLAYING') {
-      void startInterval(currentInterval)
+    if (state === 'PLAYING' && currentInterval) {
+      if (activeIntervalIdRef.current !== currentInterval.id) {
+        void startInterval(currentInterval)
+      }
     } else if (state === 'READY') {
       void loadExercise(currentInterval)
     }
@@ -224,6 +249,8 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
     timeRemaining,
     progress,
     videoUrl,
+    currentIndex,
+    totalIntervals: intervals.length,
     play,
     pause,
     resume,

@@ -5,4 +5,5 @@ export type Interval = {
   type: IntervalType
   duration: number
   exerciseId?: string
+  label?: string
 }

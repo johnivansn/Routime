@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { db } from '@/repositories/db'
 
 type ExerciseOption = {
@@ -10,20 +10,16 @@ export function useExerciseOptions() {
   const [options, setOptions] = useState<ExerciseOption[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    let active = true
-    const load = async () => {
-      setLoading(true)
-      const exercises = await db.exercises.toArray()
-      if (!active) return
-      setOptions(exercises.map((item) => ({ id: item.id, name: item.name })))
-      setLoading(false)
-    }
-    load()
-    return () => {
-      active = false
-    }
+  const load = useCallback(async () => {
+    setLoading(true)
+    const exercises = await db.exercises.toArray()
+    setOptions(exercises.map((item) => ({ id: item.id, name: item.name })))
+    setLoading(false)
   }, [])
 
-  return { options, loading }
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  return { options, loading, refresh: load }
 }

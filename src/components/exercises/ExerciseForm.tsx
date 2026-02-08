@@ -7,7 +7,7 @@ const MAX_SIZE_MB = 100
 const SUPPORTED_TYPES = ['video/mp4', 'video/webm', 'video/quicktime']
 
 type ExerciseFormProps = {
-  onSubmit: (values: { name: string; videoFile: File }) => Promise<void>
+  onSubmit: (values: { name: string; videoFile?: File }) => Promise<void>
 }
 
 export function ExerciseForm({ onSubmit }: ExerciseFormProps) {
@@ -20,15 +20,14 @@ export function ExerciseForm({ onSubmit }: ExerciseFormProps) {
     if (!isValidExerciseName(name)) {
       return 'El nombre debe tener 3-50 caracteres y solo letras, números o guiones.'
     }
-    if (!file) {
-      return 'Selecciona un video.'
-    }
-    if (!SUPPORTED_TYPES.includes(file.type)) {
-      return 'Formato inválido. Usa MP4, WebM o MOV.'
-    }
-    const sizeMb = file.size / (1024 * 1024)
-    if (sizeMb > MAX_SIZE_MB) {
-      return `El video excede ${MAX_SIZE_MB}MB.`
+    if (file) {
+      if (!SUPPORTED_TYPES.includes(file.type)) {
+        return 'Formato inválido. Usa MP4, WebM o MOV.'
+      }
+      const sizeMb = file.size / (1024 * 1024)
+      if (sizeMb > MAX_SIZE_MB) {
+        return `El video excede ${MAX_SIZE_MB}MB.`
+      }
     }
     return null
   }
@@ -40,10 +39,9 @@ export function ExerciseForm({ onSubmit }: ExerciseFormProps) {
       setError(validationError)
       return
     }
-    if (!file) return
     setError(null)
     setLoading(true)
-    await onSubmit({ name: name.trim(), videoFile: file })
+    await onSubmit({ name: name.trim(), videoFile: file ?? undefined })
     setLoading(false)
     setName('')
     setFile(null)
@@ -64,7 +62,7 @@ export function ExerciseForm({ onSubmit }: ExerciseFormProps) {
         />
       </div>
       <div className="space-y-2">
-        <label className="text-sm text-ink-200">Video</label>
+        <label className="text-sm text-ink-200">Video (opcional)</label>
         <input
           type="file"
           accept="video/mp4,video/webm,video/quicktime"

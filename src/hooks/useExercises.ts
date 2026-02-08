@@ -4,7 +4,7 @@ import type { Exercise } from '@/types'
 
 type ExerciseInput = {
   name: string
-  videoFile: File
+  videoFile?: File
 }
 
 const createObjectUrl = (file: File) => URL.createObjectURL(file)
@@ -25,9 +25,12 @@ export function useExercises() {
     revokeAll()
     const items = await db.exercises.toArray()
     const hydrated = items.map((item) => {
-      const url = createObjectUrl(item.videoFile)
-      urlsRef.current.set(item.id, url)
-      return { ...item, videoUrl: url }
+      if (item.videoFile) {
+        const url = createObjectUrl(item.videoFile)
+        urlsRef.current.set(item.id, url)
+        return { ...item, videoUrl: url }
+      }
+      return { ...item, videoUrl: undefined }
     })
     setExercises(hydrated)
     setLoading(false)
@@ -43,7 +46,7 @@ export function useExercises() {
   const addExercise = useCallback(async ({ name, videoFile }: ExerciseInput) => {
     const id = crypto.randomUUID()
     const createdAt = Date.now()
-    const videoUrl = createObjectUrl(videoFile)
+    const videoUrl = videoFile ? createObjectUrl(videoFile) : undefined
     const exercise: Exercise = {
       id,
       name,
@@ -58,7 +61,9 @@ export function useExercises() {
       videoUrl: '',
       createdAt,
     })
-    urlsRef.current.set(id, videoUrl)
+    if (videoUrl) {
+      urlsRef.current.set(id, videoUrl)
+    }
     setExercises((prev) => [exercise, ...prev])
   }, [])
 
