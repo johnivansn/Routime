@@ -1,6 +1,6 @@
-import { EmptyState } from '@/components/shared/EmptyState'
 import { TimerPanel } from '@/components/player/TimerPanel'
 import { ExerciseList } from '@/components/exercises/ExerciseList'
+import { RoutineManager } from '@/components/routines/RoutineManager'
 
 function App() {
   return (
@@ -35,11 +35,7 @@ function App() {
 
         <section className="space-y-4">
           <h2 className="font-display text-lg font-semibold text-ink-100">Rutinas</h2>
-          <EmptyState
-            title="Sin rutinas guardadas"
-            description="Combina ejercicios y descansos con duraciones precisas."
-            actionLabel="Nueva rutina"
-          />
+          <RoutineManager />
         </section>
 
         <section className="space-y-4">
