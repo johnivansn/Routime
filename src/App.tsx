@@ -1,5 +1,6 @@
 import { EmptyState } from '@/components/shared/EmptyState'
 import { TimerPanel } from '@/components/player/TimerPanel'
+import { ExerciseList } from '@/components/exercises/ExerciseList'
 
 function App() {
   return (
@@ -29,11 +30,7 @@ function App() {
       <main className="mx-auto grid max-w-6xl gap-6 px-6 pb-16 pt-8 md:grid-cols-3">
         <section className="space-y-4">
           <h2 className="font-display text-lg font-semibold text-ink-100">Ejercicios</h2>
-          <EmptyState
-            title="Sin ejercicios cargados"
-            description="Crea tu primer ejercicio con nombre y video para empezar a construir rutinas."
-            actionLabel="Nuevo ejercicio"
-          />
+          <ExerciseList />
         </section>
 
         <section className="space-y-4">
