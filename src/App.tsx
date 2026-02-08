@@ -1,4 +1,4 @@
-import { TimerPanel } from '@/components/player/TimerPanel'
+import { PlayerView } from '@/components/player/PlayerView'
 import { ExerciseList } from '@/components/exercises/ExerciseList'
 import { RoutineManager } from '@/components/routines/RoutineManager'
 
@@ -40,7 +40,7 @@ function App() {
 
         <section className="space-y-4">
           <h2 className="font-display text-lg font-semibold text-ink-100">Player</h2>
-          <TimerPanel />
+          <PlayerView />
         </section>
       </main>
     </div>
