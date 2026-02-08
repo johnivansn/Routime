@@ -1,4 +1,5 @@
 import { EmptyState } from '@/components/shared/EmptyState'
+import { TimerPanel } from '@/components/player/TimerPanel'
 
 function App() {
   return (
@@ -46,11 +47,7 @@ function App() {
 
         <section className="space-y-4">
           <h2 className="font-display text-lg font-semibold text-ink-100">Player</h2>
-          <EmptyState
-            title="Selecciona una rutina"
-            description="Cuando una rutina esté lista, podrás ejecutarla aquí con voz y temporizador."
-            actionLabel="Ir a rutinas"
-          />
+          <TimerPanel />
         </section>
       </main>
     </div>
