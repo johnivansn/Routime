@@ -1,18 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Exercise, Interval, Routine } from '@/types'
 import { TimerEngine } from '@/services/TimerEngine'
-import { VoiceService } from '@/services/VoiceService'
 import { SoundService } from '@/services/SoundService'
 import { db } from '@/repositories/db'
 
 export type PlayerState = 'IDLE' | 'READY' | 'PLAYING' | 'PAUSED' | 'COMPLETED'
 
 type PlayerOptions = {
-  voiceEnabled: boolean
   soundEnabled: boolean
-  voiceVolume: number
   soundVolume: number
-  voiceName?: string | null
+  soundPreset?: 'punch' | 'alarm' | 'metal' | 'soft'
 }
 
 export function usePlayer(routine: Routine | null, options: PlayerOptions) {
@@ -25,7 +22,6 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
   const timerRef = useRef<TimerEngine | null>(null)
   const indexRef = useRef(0)
   const activeIntervalIdRef = useRef<string | null>(null)
-  const voiceRef = useRef(new VoiceService())
   const soundRef = useRef(new SoundService())
   const lastBeepSecondRef = useRef<number | null>(null)
   const currentVideoUrlRef = useRef<string | null>(null)
@@ -70,21 +66,12 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
     async (interval: Interval | undefined) => {
       if (!interval) return
       if (interval.type === 'REST') {
-        if (options.voiceEnabled) {
-          voiceRef.current.setPreferredVoiceByName(options.voiceName)
-          voiceRef.current.speak(interval.label ?? 'Descanso', 'es-ES', options.voiceVolume)
-        }
+        await loadExercise(interval)
         return
       }
-      const exercise = await loadExercise(interval)
-      if (exercise && options.voiceEnabled) {
-        voiceRef.current.setPreferredVoiceByName(options.voiceName)
-        const detail = interval.label ? ` - ${interval.label}` : ''
-        const announcement = `${exercise.name}${detail}`
-        voiceRef.current.speak(announcement, 'es-ES', options.voiceVolume)
-      }
+      await loadExercise(interval)
     },
-    [loadExercise, options.voiceEnabled, options.voiceName, options.voiceVolume]
+    [loadExercise]
   )
 
   const stopTimer = useCallback(() => {
@@ -107,6 +94,41 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
       }
 
       await announceInterval(interval)
+
+      if (options.soundEnabled) {
+        const volume = Math.min(Math.max(options.soundVolume, 0), 1.5)
+        const isRest = interval.type === 'REST'
+        const isPhase = Boolean(interval.label)
+        const preset = options.soundPreset ?? 'punch'
+
+        if (preset === 'alarm') {
+          void soundRef.current.beepPattern([
+            { frequency: 880, durationMs: 140, volume, type: 'sawtooth' },
+            { frequency: 660, durationMs: 140, volume, type: 'sawtooth' },
+          ])
+        } else if (preset === 'metal') {
+          void soundRef.current.beep({
+            frequency: isRest ? 520 : isPhase ? 720 : 640,
+            durationMs: 220,
+            volume,
+            type: 'triangle',
+          })
+        } else if (preset === 'soft') {
+          void soundRef.current.beep({
+            frequency: isRest ? 520 : isPhase ? 680 : 600,
+            durationMs: 200,
+            volume,
+            type: 'sine',
+          })
+        } else {
+          void soundRef.current.beep({
+            frequency: isRest ? 420 : isPhase ? 760 : 640,
+            durationMs: 180,
+            volume,
+            type: 'square',
+          })
+        }
+      }
 
       timerRef.current = new TimerEngine(
         interval.duration,
@@ -135,15 +157,36 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
             setState('COMPLETED')
             setTimeRemaining(0)
             if (options.soundEnabled) {
-              soundRef.current.beep({
-                frequency: 520,
-                durationMs: 420,
-                volume: Math.min(options.soundVolume + 0.04, 0.6),
-                type: 'triangle',
-              })
-            }
-            if (options.voiceEnabled) {
-              voiceRef.current.speak('Rutina completada', 'es-ES', options.voiceVolume)
+              const volume = Math.min(options.soundVolume + 0.08, 1.5)
+              const preset = options.soundPreset ?? 'punch'
+              if (preset === 'alarm') {
+                soundRef.current.beepPattern([
+                  { frequency: 900, durationMs: 180, volume, type: 'sawtooth' },
+                  { frequency: 720, durationMs: 180, volume, type: 'sawtooth' },
+                  { frequency: 900, durationMs: 180, volume, type: 'sawtooth' },
+                ])
+              } else if (preset === 'metal') {
+                soundRef.current.beep({
+                  frequency: 560,
+                  durationMs: 420,
+                  volume,
+                  type: 'triangle',
+                })
+              } else if (preset === 'soft') {
+                soundRef.current.beep({
+                  frequency: 520,
+                  durationMs: 420,
+                  volume,
+                  type: 'sine',
+                })
+              } else {
+                soundRef.current.beep({
+                  frequency: 520,
+                  durationMs: 420,
+                  volume,
+                  type: 'square',
+                })
+              }
             }
           }
         }
@@ -233,7 +276,6 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
     return () => {
       stopTimer()
       clearVideoUrl()
-      voiceRef.current.cancel()
     }
   }, [clearVideoUrl, stopTimer])
 

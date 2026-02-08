@@ -20,7 +20,7 @@ function App() {
               </h1>
               <p className="max-w-2xl text-base text-ink-200 md:text-lg">
                 Crea ejercicios con video, arma intervalos y ejecuta rutinas sin mirar la
-                pantalla. Esto es la base del MVP y empezaremos con los módulos clave.
+                pantalla.
               </p>
             </div>
           </header>

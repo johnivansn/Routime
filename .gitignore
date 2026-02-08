@@ -12,7 +12,6 @@ dist
 dist-ssr
 .vite
 *.local
-
 # Env files
 .env
 .env.*.local

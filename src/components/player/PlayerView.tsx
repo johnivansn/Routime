@@ -5,20 +5,15 @@ import { Button } from '@/components/shared/Button'
 import { formatTime } from '@/utils/formatTime'
 import { EmptyState } from '@/components/shared/EmptyState'
 import type { Routine } from '@/types'
-import { VoiceService } from '@/services/VoiceService'
 import { SoundService } from '@/services/SoundService'
 
 export function PlayerView() {
   const { routines, loading } = useRoutines()
   const [selectedId, setSelectedId] = useState<string>('')
-  const [voiceEnabled, setVoiceEnabled] = useState(true)
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const [voiceVolume, setVoiceVolume] = useState(1)
   const [soundVolume, setSoundVolume] = useState(0.18)
+  const [soundPreset, setSoundPreset] = useState('punch')
   const [stageMode, setStageMode] = useState(false)
-  const [voiceName, setVoiceName] = useState<string | null>(null)
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
-  const voiceTestTimeoutRef = useRef<number | null>(null)
   const soundTestTimeoutRef = useRef<number | null>(null)
   const soundTestRef = useRef(new SoundService())
 
@@ -26,46 +21,22 @@ export function PlayerView() {
     if (typeof window === 'undefined') {
       return
     }
-    const storedVoice = window.localStorage.getItem('routime:voiceVolume')
     const storedSound = window.localStorage.getItem('routime:soundVolume')
-    const storedVoiceEnabled = window.localStorage.getItem('routime:voiceEnabled')
     const storedSoundEnabled = window.localStorage.getItem('routime:soundEnabled')
-    const storedVoiceName = window.localStorage.getItem('routime:voiceName')
-    if (storedVoice) {
-      const value = Number(storedVoice)
-      if (!Number.isNaN(value)) {
-        setVoiceVolume(Math.min(Math.max(value, 0), 1))
-      }
-    }
+    const storedSoundPreset = window.localStorage.getItem('routime:soundPreset')
     if (storedSound) {
       const value = Number(storedSound)
       if (!Number.isNaN(value)) {
-        setSoundVolume(Math.min(Math.max(value, 0), 0.6))
+        setSoundVolume(Math.min(Math.max(value, 0), 1.5))
       }
-    }
-    if (storedVoiceEnabled) {
-      setVoiceEnabled(storedVoiceEnabled === 'true')
     }
     if (storedSoundEnabled) {
       setSoundEnabled(storedSoundEnabled === 'true')
     }
-    if (storedVoiceName) {
-      setVoiceName(storedVoiceName)
+    if (storedSoundPreset) {
+      setSoundPreset(storedSoundPreset)
     }
   }, [])
-
-  useEffect(() => {
-    if (voiceEnabled && !VoiceService.isSupported()) {
-      setVoiceEnabled(false)
-    }
-  }, [voiceEnabled])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-    window.localStorage.setItem('routime:voiceVolume', String(voiceVolume))
-  }, [voiceVolume])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -78,13 +49,6 @@ export function PlayerView() {
     if (typeof window === 'undefined') {
       return
     }
-    window.localStorage.setItem('routime:voiceEnabled', String(voiceEnabled))
-  }, [voiceEnabled])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
     window.localStorage.setItem('routime:soundEnabled', String(soundEnabled))
   }, [soundEnabled])
 
@@ -92,22 +56,8 @@ export function PlayerView() {
     if (typeof window === 'undefined') {
       return
     }
-    if (voiceName) {
-      window.localStorage.setItem('routime:voiceName', voiceName)
-    }
-  }, [voiceName])
-
-  useEffect(() => {
-    if (!VoiceService.isSupported()) {
-      return
-    }
-    const updateVoices = () => {
-      setVoices(VoiceService.getVoices())
-    }
-    updateVoices()
-    window.speechSynthesis.addEventListener('voiceschanged', updateVoices)
-    return () => window.speechSynthesis.removeEventListener('voiceschanged', updateVoices)
-  }, [])
+    window.localStorage.setItem('routime:soundPreset', soundPreset)
+  }, [soundPreset])
 
   const selectedRoutine = useMemo(
     () => routines.find((routine) => routine.id === selectedId) ?? null,
@@ -147,11 +97,9 @@ export function PlayerView() {
     stop,
     skip,
   } = usePlayer(selectedRoutine, {
-    voiceEnabled,
     soundEnabled,
-    voiceVolume,
     soundVolume,
-    voiceName,
+    soundPreset,
   })
 
   const displaySeconds = Math.max(0, Math.ceil(timeRemaining))
@@ -205,17 +153,13 @@ export function PlayerView() {
   }, [pause, state])
 
   const handleReset = () => {
-    setVoiceEnabled(true)
     setSoundEnabled(true)
-    setVoiceVolume(1)
     setSoundVolume(0.18)
-    setVoiceName(null)
+    setSoundPreset('punch')
     if (typeof window !== 'undefined') {
-      window.localStorage.removeItem('routime:voiceEnabled')
       window.localStorage.removeItem('routime:soundEnabled')
-      window.localStorage.removeItem('routime:voiceVolume')
       window.localStorage.removeItem('routime:soundVolume')
-      window.localStorage.removeItem('routime:voiceName')
+      window.localStorage.removeItem('routime:soundPreset')
     }
   }
 
@@ -289,7 +233,11 @@ export function PlayerView() {
                 </div>
                 <div className="text-right">
                   <p className="text-xs uppercase tracking-[0.3em] text-ink-400">Tiempo restante</p>
-                  <div className={`mt-2 font-display text-timer ${isEndingSoon ? 'text-ember-500' : 'text-ink-50'}`}>
+                  <div
+                    className={`mt-2 font-display text-timer ${
+                      isEndingSoon ? 'text-ember-500' : 'text-ink-50'
+                    }`}
+                  >
                     {formatTime(displaySeconds)}
                   </div>
                 </div>
@@ -341,11 +289,6 @@ export function PlayerView() {
         </div>
       )}
 
-      {voiceEnabled && !VoiceService.isSupported() && (
-        <div className="rounded-2xl border border-ember-500/60 bg-ember-500/10 px-4 py-3 text-sm text-ember-200">
-          Tu navegador no soporta Web Speech API. La voz se desactivará automáticamente.
-        </div>
-      )}
       <div className="space-y-2">
         <label className="text-sm text-ink-200">Selecciona una rutina</label>
         <select
@@ -396,10 +339,7 @@ export function PlayerView() {
           </div>
 
           <div className="mt-4 h-2 overflow-hidden rounded-full bg-ink-900/80">
-            <div
-              className="h-full bg-accent-500"
-              style={{ width: `${progress}%` }}
-            />
+            <div className="h-full bg-accent-500" style={{ width: `${progress}%` }} />
           </div>
 
           {state === 'COMPLETED' && (
@@ -464,83 +404,23 @@ export function PlayerView() {
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
-            checked={voiceEnabled}
-            onChange={(event) => setVoiceEnabled(event.target.checked)}
-            className="h-4 w-4 rounded border-ink-500 bg-ink-900 text-accent-500"
-          />
-          Voz activa
-        </label>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
             checked={soundEnabled}
             onChange={(event) => setSoundEnabled(event.target.checked)}
             className="h-4 w-4 rounded border-ink-500 bg-ink-900 text-accent-500"
           />
-          Sonidos de cuenta regresiva
+          Sonidos activos
         </label>
-        <span className="text-xs text-ink-500">Sonido en 3-2-1 y tono final.</span>
+        <span className="text-xs text-ink-500">Sonido en inicio, 3-2-1 y tono final.</span>
         <span className="text-xs text-ink-500">
           Atajos: Espacio (Play/Pausa), → (Siguiente), Esc (Detener).
         </span>
-        <label className="space-y-2 text-xs text-ink-300 md:col-span-1">
-          Volumen voz
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            value={voiceVolume}
-            onChange={(event) => {
-              const value = Number(event.target.value)
-              setVoiceVolume(value)
-              if (voiceEnabled && VoiceService.isSupported()) {
-                if (voiceTestTimeoutRef.current) {
-                  window.clearTimeout(voiceTestTimeoutRef.current)
-                }
-                const timeoutId = window.setTimeout(() => {
-                  const utterance = new SpeechSynthesisUtterance('Prueba de volumen')
-                  utterance.lang = 'es-ES'
-                  utterance.volume = Math.min(Math.max(value, 0), 1)
-                  if (voiceName) {
-                    const picked = VoiceService.findVoiceByName(voiceName)
-                    if (picked) {
-                      utterance.voice = picked
-                    }
-                  }
-                  window.speechSynthesis.cancel()
-                  window.speechSynthesis.speak(utterance)
-                }, 200)
-                voiceTestTimeoutRef.current = timeoutId
-              }
-            }}
-            className="w-full accent-accent-500"
-          />
-        </label>
-        {VoiceService.isSupported() && voices.length > 0 && (
-          <label className="space-y-2 text-xs text-ink-300 md:col-span-1">
-            Voz del sistema
-            <select
-              value={voiceName ?? ''}
-              onChange={(event) => setVoiceName(event.target.value || null)}
-              className="w-full rounded-2xl border border-ink-700 bg-ink-900/70 px-4 py-2 text-ink-50 outline-none focus:border-accent-500"
-            >
-              <option value="">Automática</option>
-              {voices.map((voice) => (
-                <option key={voice.name} value={voice.name}>
-                  {voice.name} ({voice.lang})
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
         <label className="space-y-2 text-xs text-ink-300 md:col-span-1">
           Volumen sonidos
           <input
             type="range"
             min={0}
-            max={0.6}
-            step={0.02}
+            max={1.5}
+            step={0.05}
             value={soundVolume}
             onChange={(event) => {
               const value = Number(event.target.value)
@@ -550,18 +430,52 @@ export function PlayerView() {
                   window.clearTimeout(soundTestTimeoutRef.current)
                 }
                 const timeoutId = window.setTimeout(() => {
-                  void soundTestRef.current.beep({
-                    frequency: 720,
-                    durationMs: 160,
-                    volume: Math.min(Math.max(value, 0), 0.6),
-                    type: 'sine',
-                  })
+                  if (soundPreset === 'alarm') {
+                    void soundTestRef.current.beepPattern([
+                      { frequency: 880, durationMs: 160, volume: Math.min(Math.max(value, 0), 1.5), type: 'sawtooth' },
+                      { frequency: 660, durationMs: 160, volume: Math.min(Math.max(value, 0), 1.5), type: 'sawtooth' },
+                    ])
+                  } else if (soundPreset === 'metal') {
+                    void soundTestRef.current.beep({
+                      frequency: 640,
+                      durationMs: 220,
+                      volume: Math.min(Math.max(value, 0), 1.5),
+                      type: 'triangle',
+                    })
+                  } else if (soundPreset === 'soft') {
+                    void soundTestRef.current.beep({
+                      frequency: 600,
+                      durationMs: 200,
+                      volume: Math.min(Math.max(value, 0), 1.5),
+                      type: 'sine',
+                    })
+                  } else {
+                    void soundTestRef.current.beep({
+                      frequency: 760,
+                      durationMs: 160,
+                      volume: Math.min(Math.max(value, 0), 1.5),
+                      type: 'square',
+                    })
+                  }
                 }, 200)
                 soundTestTimeoutRef.current = timeoutId
               }
             }}
             className="w-full accent-ember-500"
           />
+        </label>
+        <label className="space-y-2 text-xs text-ink-300 md:col-span-1">
+          Preset de sonido
+          <select
+            value={soundPreset}
+            onChange={(event) => setSoundPreset(event.target.value)}
+            className="w-full rounded-2xl border border-ink-700 bg-ink-900/70 px-4 py-2 text-ink-50 outline-none focus:border-accent-500"
+          >
+            <option value="punch">Punch</option>
+            <option value="alarm">Alarma</option>
+            <option value="metal">Metálico</option>
+            <option value="soft">Suave</option>
+          </select>
         </label>
         <div className="flex items-end">
           <Button onClick={handleReset} variant="ghost" className="w-full text-xs">

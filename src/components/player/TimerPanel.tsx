@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { TimerEngine } from '@/services/TimerEngine'
-import { VoiceService } from '@/services/VoiceService'
 import { SoundService } from '@/services/SoundService'
 import { Button } from '@/components/shared/Button'
 import { formatTime } from '@/utils/formatTime'
@@ -14,33 +13,28 @@ export function TimerPanel() {
   const [durationInput, setDurationInput] = useState(30)
   const [remaining, setRemaining] = useState(30)
   const [state, setState] = useState<PlayerState>('IDLE')
-  const [voiceEnabled, setVoiceEnabled] = useState(true)
   const [soundEnabled, setSoundEnabled] = useState(true)
-  const [voiceVolume, setVoiceVolume] = useState(1)
   const [soundVolume, setSoundVolume] = useState(0.18)
-  const voiceTestTimeoutRef = useRef<number | null>(null)
-  const soundTestTimeoutRef = useRef<number | null>(null)
-
-  const resetDefaults = () => {
-    setVoiceEnabled(true)
-    setSoundEnabled(true)
-    setVoiceVolume(1)
-    setSoundVolume(0.18)
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem('routime:voiceEnabled')
-      window.localStorage.removeItem('routime:soundEnabled')
-      window.localStorage.removeItem('routime:voiceVolume')
-      window.localStorage.removeItem('routime:soundVolume')
-    }
-  }
+  const [soundPreset, setSoundPreset] = useState('punch')
 
   const timerRef = useRef<TimerEngine | null>(null)
-  const voiceRef = useRef(new VoiceService())
   const soundRef = useRef(new SoundService())
   const lastBeepSecondRef = useRef<number | null>(null)
+  const soundTestTimeoutRef = useRef<number | null>(null)
 
   const displaySeconds = useMemo(() => Math.max(0, Math.ceil(remaining)), [remaining])
   const isEndingSoon = displaySeconds > 0 && displaySeconds <= 5
+
+  const resetDefaults = () => {
+    setSoundEnabled(true)
+    setSoundVolume(0.18)
+    setSoundPreset('punch')
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('routime:soundEnabled')
+      window.localStorage.removeItem('routime:soundVolume')
+      window.localStorage.removeItem('routime:soundPreset')
+    }
+  }
 
   const stopTimer = () => {
     timerRef.current?.stop()
@@ -58,10 +52,34 @@ export function TimerPanel() {
 
     if (soundEnabled) {
       await soundRef.current.unlock()
-    }
-
-    if (voiceEnabled) {
-      voiceRef.current.speak(label, 'es-ES', voiceVolume)
+      const volume = Math.min(Math.max(soundVolume, 0), 1)
+      if (soundPreset === 'alarm') {
+        void soundRef.current.beepPattern([
+          { frequency: 880, durationMs: 140, volume, type: 'sawtooth' },
+          { frequency: 660, durationMs: 140, volume, type: 'sawtooth' },
+        ])
+      } else if (soundPreset === 'metal') {
+        void soundRef.current.beep({
+          frequency: 700,
+          durationMs: 220,
+          volume,
+          type: 'triangle',
+        })
+      } else if (soundPreset === 'soft') {
+        void soundRef.current.beep({
+          frequency: 600,
+          durationMs: 200,
+          volume,
+          type: 'sine',
+        })
+      } else {
+        void soundRef.current.beep({
+          frequency: 720,
+          durationMs: 180,
+          volume,
+          type: 'square',
+        })
+      }
     }
 
     timerRef.current = new TimerEngine(
@@ -73,12 +91,34 @@ export function TimerPanel() {
         if (soundEnabled && currentSecond <= 3 && currentSecond > 0) {
           if (lastBeepSecondRef.current !== currentSecond) {
             lastBeepSecondRef.current = currentSecond
-            soundRef.current.beep({
-              frequency: 900 + currentSecond * 40,
-              durationMs: 120,
-              volume: soundVolume,
-              type: 'sine',
-            })
+            const volume = Math.min(Math.max(soundVolume, 0), 1)
+            if (soundPreset === 'alarm') {
+              soundRef.current.beepPattern([
+                { frequency: 900 + currentSecond * 20, durationMs: 120, volume, type: 'sawtooth' },
+                { frequency: 700 + currentSecond * 20, durationMs: 120, volume, type: 'sawtooth' },
+              ])
+            } else if (soundPreset === 'metal') {
+              soundRef.current.beep({
+                frequency: 760,
+                durationMs: 140,
+                volume,
+                type: 'triangle',
+              })
+            } else if (soundPreset === 'soft') {
+              soundRef.current.beep({
+                frequency: 660,
+                durationMs: 140,
+                volume,
+                type: 'sine',
+              })
+            } else {
+              soundRef.current.beep({
+                frequency: 900 + currentSecond * 40,
+                durationMs: 120,
+                volume,
+                type: 'square',
+              })
+            }
           }
         }
       },
@@ -86,15 +126,35 @@ export function TimerPanel() {
         setRemaining(0)
         setState('COMPLETED')
         if (soundEnabled) {
-          soundRef.current.beep({
-            frequency: 520,
-            durationMs: 420,
-            volume: Math.min(soundVolume + 0.04, 0.6),
-            type: 'triangle',
-          })
-        }
-        if (voiceEnabled) {
-          voiceRef.current.speak('Tiempo', 'es-ES', voiceVolume)
+          const volume = Math.min(soundVolume + 0.08, 1)
+          if (soundPreset === 'alarm') {
+            soundRef.current.beepPattern([
+              { frequency: 900, durationMs: 180, volume, type: 'sawtooth' },
+              { frequency: 720, durationMs: 180, volume, type: 'sawtooth' },
+              { frequency: 900, durationMs: 180, volume, type: 'sawtooth' },
+            ])
+          } else if (soundPreset === 'metal') {
+            soundRef.current.beep({
+              frequency: 560,
+              durationMs: 420,
+              volume,
+              type: 'triangle',
+            })
+          } else if (soundPreset === 'soft') {
+            soundRef.current.beep({
+              frequency: 520,
+              durationMs: 420,
+              volume,
+              type: 'sine',
+            })
+          } else {
+            soundRef.current.beep({
+              frequency: 520,
+              durationMs: 420,
+              volume,
+              type: 'square',
+            })
+          }
         }
       }
     )
@@ -111,62 +171,6 @@ export function TimerPanel() {
     timerRef.current?.resume()
     setState('PLAYING')
   }
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-    const storedVoice = window.localStorage.getItem('routime:voiceVolume')
-    const storedSound = window.localStorage.getItem('routime:soundVolume')
-    const storedVoiceEnabled = window.localStorage.getItem('routime:voiceEnabled')
-    const storedSoundEnabled = window.localStorage.getItem('routime:soundEnabled')
-    if (storedVoice) {
-      const value = Number(storedVoice)
-      if (!Number.isNaN(value)) {
-        setVoiceVolume(Math.min(Math.max(value, 0), 1))
-      }
-    }
-    if (storedSound) {
-      const value = Number(storedSound)
-      if (!Number.isNaN(value)) {
-        setSoundVolume(Math.min(Math.max(value, 0), 0.6))
-      }
-    }
-    if (storedVoiceEnabled) {
-      setVoiceEnabled(storedVoiceEnabled === 'true')
-    }
-    if (storedSoundEnabled) {
-      setSoundEnabled(storedSoundEnabled === 'true')
-    }
-  }, [])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-    window.localStorage.setItem('routime:voiceVolume', String(voiceVolume))
-  }, [voiceVolume])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-    window.localStorage.setItem('routime:soundVolume', String(soundVolume))
-  }, [soundVolume])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-    window.localStorage.setItem('routime:voiceEnabled', String(voiceEnabled))
-  }, [voiceEnabled])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-    window.localStorage.setItem('routime:soundEnabled', String(soundEnabled))
-  }, [soundEnabled])
 
   return (
     <div className="rounded-3xl border border-ink-700 bg-ink-800/70 p-6">
@@ -232,15 +236,6 @@ export function TimerPanel() {
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
-            checked={voiceEnabled}
-            onChange={(event) => setVoiceEnabled(event.target.checked)}
-            className="h-4 w-4 rounded border-ink-500 bg-ink-900 text-accent-500"
-          />
-          Voz activa
-        </label>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
             checked={soundEnabled}
             onChange={(event) => setSoundEnabled(event.target.checked)}
             className="h-4 w-4 rounded border-ink-500 bg-ink-900 text-accent-500"
@@ -248,43 +243,15 @@ export function TimerPanel() {
           Sonidos de cuenta regresiva
         </label>
         <span className="text-xs text-ink-500">
-          Sonido en 3-2-1 y tono final.
+          Sonido en inicio, 3-2-1 y tono final.
         </span>
-        <label className="space-y-2 text-xs text-ink-300 md:col-span-1">
-          Volumen voz
-          <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.05}
-            value={voiceVolume}
-            onChange={(event) => {
-              const value = Number(event.target.value)
-              setVoiceVolume(value)
-              if (voiceEnabled && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-                if (voiceTestTimeoutRef.current) {
-                  window.clearTimeout(voiceTestTimeoutRef.current)
-                }
-                const timeoutId = window.setTimeout(() => {
-                  const utterance = new SpeechSynthesisUtterance('Prueba de volumen')
-                  utterance.lang = 'es-ES'
-                  utterance.volume = Math.min(Math.max(value, 0), 1)
-                  window.speechSynthesis.cancel()
-                  window.speechSynthesis.speak(utterance)
-                }, 200)
-                voiceTestTimeoutRef.current = timeoutId
-              }
-            }}
-            className="w-full accent-accent-500"
-          />
-        </label>
         <label className="space-y-2 text-xs text-ink-300 md:col-span-1">
           Volumen sonidos
           <input
             type="range"
             min={0}
-            max={0.6}
-            step={0.02}
+            max={1.5}
+            step={0.05}
             value={soundVolume}
             onChange={(event) => {
               const value = Number(event.target.value)
@@ -294,12 +261,34 @@ export function TimerPanel() {
                   window.clearTimeout(soundTestTimeoutRef.current)
                 }
                 const timeoutId = window.setTimeout(() => {
-                  void soundRef.current.beep({
-                    frequency: 720,
-                    durationMs: 160,
-                    volume: Math.min(Math.max(value, 0), 0.6),
-                    type: 'sine',
-                  })
+                  const volume = Math.min(Math.max(value, 0), 1.5)
+                  if (soundPreset === 'alarm') {
+                    void soundRef.current.beepPattern([
+                      { frequency: 880, durationMs: 160, volume, type: 'sawtooth' },
+                      { frequency: 660, durationMs: 160, volume, type: 'sawtooth' },
+                    ])
+                  } else if (soundPreset === 'metal') {
+                    void soundRef.current.beep({
+                      frequency: 640,
+                      durationMs: 220,
+                      volume,
+                      type: 'triangle',
+                    })
+                  } else if (soundPreset === 'soft') {
+                    void soundRef.current.beep({
+                      frequency: 600,
+                      durationMs: 200,
+                      volume,
+                      type: 'sine',
+                    })
+                  } else {
+                    void soundRef.current.beep({
+                      frequency: 760,
+                      durationMs: 160,
+                      volume,
+                      type: 'square',
+                    })
+                  }
                 }, 200)
                 soundTestTimeoutRef.current = timeoutId
               }
@@ -307,12 +296,21 @@ export function TimerPanel() {
             className="w-full accent-ember-500"
           />
         </label>
-        <div className="flex items-end">
-          <Button
-            onClick={resetDefaults}
-            variant="ghost"
-            className="w-full text-xs"
+        <label className="space-y-2 text-xs text-ink-300 md:col-span-1">
+          Preset de sonido
+          <select
+            value={soundPreset}
+            onChange={(event) => setSoundPreset(event.target.value)}
+            className="w-full rounded-2xl border border-ink-700 bg-ink-900/70 px-4 py-2 text-ink-50 outline-none focus:border-accent-500"
           >
+            <option value="punch">Punch</option>
+            <option value="alarm">Alarma</option>
+            <option value="metal">Metálico</option>
+            <option value="soft">Suave</option>
+          </select>
+        </label>
+        <div className="flex items-end">
+          <Button onClick={resetDefaults} variant="ghost" className="w-full text-xs">
             Resetear ajustes
           </Button>
         </div>

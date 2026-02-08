@@ -4,6 +4,7 @@ export class VoiceService {
   private debounceMs = 200
   private pendingTimeout: number | null = null
   private preferredVoice: SpeechSynthesisVoice | null = null
+  private preferredVoiceName: string | null = null
 
   static isSupported() {
     return typeof window !== 'undefined' && 'speechSynthesis' in window
@@ -33,10 +34,18 @@ export class VoiceService {
   }
 
   setPreferredVoiceByName(name: string | null | undefined) {
+    if (!name) {
+      this.preferredVoice = null
+      this.preferredVoiceName = null
+      return
+    }
     const voice = VoiceService.findVoiceByName(name)
     if (voice) {
       this.preferredVoice = voice
+      this.preferredVoiceName = voice.name
+      return
     }
+    this.preferredVoiceName = name
   }
 
   private pickPreferredVoice(langPrefix: string) {
@@ -54,13 +63,26 @@ export class VoiceService {
     return preferredByName ?? pool[0]
   }
 
-  speak(text: string, lang = 'es-ES', volume = 1) {
+  speak(text: string, lang = 'es-ES', volume = 1, rate = 1, pitch = 1) {
     if (!this.synth || !text || text === this.lastSpoken) {
+      if (typeof window !== 'undefined' && window.routime?.tts?.isAvailable()) {
+        void window.routime.tts.speak(text, { rate, volume })
+      }
       return
     }
 
     if (this.pendingTimeout) {
       window.clearTimeout(this.pendingTimeout)
+    }
+
+    if (typeof window !== 'undefined' && window.routime?.tts?.isAvailable()) {
+      void window.routime.tts.speak(text, {
+        rate,
+        volume,
+        voiceName: this.preferredVoiceName,
+      })
+      this.lastSpoken = text
+      return
     }
 
     this.synth.cancel()
@@ -69,6 +91,8 @@ export class VoiceService {
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = lang
       utterance.volume = Math.min(Math.max(volume, 0), 1)
+      utterance.rate = Math.min(Math.max(rate, 0.5), 2)
+      utterance.pitch = Math.min(Math.max(pitch, 0), 2)
       if (this.preferredVoice) {
         utterance.voice = this.preferredVoice
       }
