@@ -10,7 +10,7 @@ export class VoiceService {
     }
   }
 
-  speak(text: string, lang = 'es-ES') {
+  speak(text: string, lang = 'es-ES', volume = 1) {
     if (!this.synth || !text || text === this.lastSpoken) {
       return
     }
@@ -24,6 +24,7 @@ export class VoiceService {
     this.pendingTimeout = window.setTimeout(() => {
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = lang
+      utterance.volume = Math.min(Math.max(volume, 0), 1)
       this.synth?.speak(utterance)
       this.lastSpoken = text
     }, this.debounceMs)
