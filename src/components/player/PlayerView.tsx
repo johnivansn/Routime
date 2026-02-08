@@ -89,6 +89,53 @@ export function PlayerView() {
     skip,
   } = usePlayer(selectedRoutine, { voiceEnabled, soundEnabled, voiceVolume, soundVolume })
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null
+      const isEditable =
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.tagName === 'SELECT' ||
+        target?.isContentEditable
+      if (isEditable) return
+
+      if (event.code === 'Space') {
+        event.preventDefault()
+        if (!currentInterval) return
+        if (state === 'PLAYING') {
+          pause()
+        } else if (state === 'PAUSED') {
+          resume()
+        } else {
+          play()
+        }
+      }
+
+      if (event.code === 'Escape') {
+        event.preventDefault()
+        stop()
+      }
+
+      if (event.code === 'ArrowRight') {
+        event.preventDefault()
+        skip()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [currentInterval, pause, play, resume, skip, state, stop])
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden && state === 'PLAYING') {
+        pause()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [pause, state])
+
   const handleReset = () => {
     setVoiceEnabled(true)
     setSoundEnabled(true)
@@ -232,6 +279,9 @@ export function PlayerView() {
           Sonidos de cuenta regresiva
         </label>
         <span className="text-xs text-ink-500">Sonido en 3-2-1 y tono final.</span>
+        <span className="text-xs text-ink-500">
+          Atajos: Espacio (Play/Pausa), → (Siguiente), Esc (Detener).
+        </span>
         <label className="space-y-2 text-xs text-ink-300 md:col-span-1">
           Volumen voz
           <input
