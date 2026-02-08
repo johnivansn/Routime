@@ -110,6 +110,62 @@ export function TimerPanel() {
     setState('PLAYING')
   }
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    const storedVoice = window.localStorage.getItem('routime:voiceVolume')
+    const storedSound = window.localStorage.getItem('routime:soundVolume')
+    const storedVoiceEnabled = window.localStorage.getItem('routime:voiceEnabled')
+    const storedSoundEnabled = window.localStorage.getItem('routime:soundEnabled')
+    if (storedVoice) {
+      const value = Number(storedVoice)
+      if (!Number.isNaN(value)) {
+        setVoiceVolume(Math.min(Math.max(value, 0), 1))
+      }
+    }
+    if (storedSound) {
+      const value = Number(storedSound)
+      if (!Number.isNaN(value)) {
+        setSoundVolume(Math.min(Math.max(value, 0), 0.6))
+      }
+    }
+    if (storedVoiceEnabled) {
+      setVoiceEnabled(storedVoiceEnabled === 'true')
+    }
+    if (storedSoundEnabled) {
+      setSoundEnabled(storedSoundEnabled === 'true')
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    window.localStorage.setItem('routime:voiceVolume', String(voiceVolume))
+  }, [voiceVolume])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    window.localStorage.setItem('routime:soundVolume', String(soundVolume))
+  }, [soundVolume])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    window.localStorage.setItem('routime:voiceEnabled', String(voiceEnabled))
+  }, [voiceEnabled])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    window.localStorage.setItem('routime:soundEnabled', String(soundEnabled))
+  }, [soundEnabled])
+
   return (
     <div className="rounded-3xl border border-ink-700 bg-ink-800/70 p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -229,58 +285,3 @@ export function TimerPanel() {
     </div>
   )
 }
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-    const storedVoice = window.localStorage.getItem('routime:voiceVolume')
-    const storedSound = window.localStorage.getItem('routime:soundVolume')
-    const storedVoiceEnabled = window.localStorage.getItem('routime:voiceEnabled')
-    const storedSoundEnabled = window.localStorage.getItem('routime:soundEnabled')
-    if (storedVoice) {
-      const value = Number(storedVoice)
-      if (!Number.isNaN(value)) {
-        setVoiceVolume(Math.min(Math.max(value, 0), 1))
-      }
-    }
-    if (storedSound) {
-      const value = Number(storedSound)
-      if (!Number.isNaN(value)) {
-        setSoundVolume(Math.min(Math.max(value, 0), 0.6))
-      }
-    }
-    if (storedVoiceEnabled) {
-      setVoiceEnabled(storedVoiceEnabled === 'true')
-    }
-    if (storedSoundEnabled) {
-      setSoundEnabled(storedSoundEnabled === 'true')
-    }
-  }, [])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-    window.localStorage.setItem('routime:voiceVolume', String(voiceVolume))
-  }, [voiceVolume])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-    window.localStorage.setItem('routime:soundVolume', String(soundVolume))
-  }, [soundVolume])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-    window.localStorage.setItem('routime:voiceEnabled', String(voiceEnabled))
-  }, [voiceEnabled])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
-    }
-    window.localStorage.setItem('routime:soundEnabled', String(soundEnabled))
-  }, [soundEnabled])
