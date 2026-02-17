@@ -3,6 +3,7 @@ import { TimerEngine } from '@/services/TimerEngine'
 import { SoundService } from '@/services/SoundService'
 import { Button } from '@/components/shared/Button'
 import { formatTime } from '@/utils/formatTime'
+import { Dropdown } from '@/components/shared/Dropdown'
 
 type PlayerState = 'IDLE' | 'PLAYING' | 'PAUSED' | 'COMPLETED'
 
@@ -173,14 +174,14 @@ export function TimerPanel() {
   }
 
   return (
-    <div className="rounded-3xl border border-ink-700 bg-ink-800/70 p-6">
+    <div className="surface-panel p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-ink-300">Intervalo actual</p>
+          <p className="form-label">Intervalo actual</p>
           <h3 className="mt-2 font-display text-2xl font-semibold text-ink-50">{label || 'Sin nombre'}</h3>
         </div>
         <div className="text-right">
-          <p className="text-xs uppercase tracking-[0.3em] text-ink-400">Tiempo restante</p>
+          <p className="form-label">Tiempo restante</p>
           <div className={`mt-2 font-display text-5xl ${isEndingSoon ? 'text-ember-500' : 'text-ink-50'}`}>
             {formatTime(displaySeconds)}
           </div>
@@ -188,25 +189,25 @@ export function TimerPanel() {
       </div>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
-        <label className="space-y-2 text-sm text-ink-200">
-          Nombre del ejercicio
+        <label className="space-y-2">
+          <span className="form-label">Nombre del ejercicio</span>
           <input
             value={label}
             onChange={(event) => setLabel(event.target.value)}
-            className="w-full rounded-2xl border border-ink-700 bg-ink-900/60 px-4 py-3 text-ink-50 outline-none focus:border-accent-500"
+            className="input-field"
             placeholder="Ej. Burpees"
           />
         </label>
 
-        <label className="space-y-2 text-sm text-ink-200">
-          Duración (segundos)
+        <label className="space-y-2">
+          <span className="form-label">Duración (segundos)</span>
           <input
             type="number"
             min={1}
             max={600}
             value={durationInput}
             onChange={(event) => setDurationInput(Number(event.target.value))}
-            className="w-full rounded-2xl border border-ink-700 bg-ink-900/60 px-4 py-3 text-ink-50 outline-none focus:border-accent-500"
+            className="input-field"
           />
         </label>
 
@@ -242,11 +243,11 @@ export function TimerPanel() {
           />
           Sonidos de cuenta regresiva
         </label>
-        <span className="text-xs text-ink-500">
+        <span className="form-help">
           Sonido en inicio, 3-2-1 y tono final.
         </span>
         <label className="space-y-2 text-xs text-ink-300 md:col-span-1">
-          Volumen sonidos
+          <span className="form-label">Volumen sonidos</span>
           <input
             type="range"
             min={0}
@@ -297,20 +298,20 @@ export function TimerPanel() {
           />
         </label>
         <label className="space-y-2 text-xs text-ink-300 md:col-span-1">
-          Preset de sonido
-          <select
+          <span className="form-label">Preset de sonido</span>
+          <Dropdown
             value={soundPreset}
-            onChange={(event) => setSoundPreset(event.target.value)}
-            className="w-full rounded-2xl border border-ink-700 bg-ink-900/70 px-4 py-2 text-ink-50 outline-none focus:border-accent-500"
-          >
-            <option value="punch">Punch</option>
-            <option value="alarm">Alarma</option>
-            <option value="metal">Metálico</option>
-            <option value="soft">Suave</option>
-          </select>
+            onChange={setSoundPreset}
+            options={[
+              { value: 'punch', label: 'Punch' },
+              { value: 'alarm', label: 'Alarma' },
+              { value: 'metal', label: 'Metálico' },
+              { value: 'soft', label: 'Suave' },
+            ]}
+          />
         </label>
         <div className="flex items-end">
-          <Button onClick={resetDefaults} variant="ghost" className="w-full text-xs">
+          <Button onClick={resetDefaults} variant="secondary" className="w-full text-xs">
             Resetear ajustes
           </Button>
         </div>

@@ -6,4 +6,6 @@ export type Interval = {
   duration: number
   exerciseId?: string
   label?: string
+  notes?: string
+  section?: 'WARMUP' | 'WORK' | 'COOLDOWN'
 }

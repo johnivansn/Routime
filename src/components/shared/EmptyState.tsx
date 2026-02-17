@@ -14,7 +14,7 @@ export function EmptyState({
   onAction,
 }: EmptyStateProps) {
   return (
-    <div className="flex h-full flex-col items-start justify-between gap-6 rounded-3xl border border-ink-700 bg-ink-800/70 p-6">
+    <div className="surface-panel flex h-full flex-col items-start justify-between gap-6 p-4 sm:p-6">
       <div className="space-y-2">
         <h3 className="font-display text-xl font-semibold text-ink-50">{title}</h3>
         <p className="text-sm text-ink-300">{description}</p>

@@ -1,7 +1,6 @@
-const exerciseNameRegex = /^[\p{L}\p{N}\s-]{3,50}$/u
-
 export function isValidExerciseName(name: string) {
-  return exerciseNameRegex.test(name.trim())
+  const trimmed = name.trim()
+  return trimmed.length >= 3 && trimmed.length <= 80
 }
 
 export function isValidIntervalDuration(seconds: number) {

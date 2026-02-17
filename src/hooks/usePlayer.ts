@@ -3,6 +3,7 @@ import type { Exercise, Interval, Routine } from '@/types'
 import { TimerEngine } from '@/services/TimerEngine'
 import { SoundService } from '@/services/SoundService'
 import { db } from '@/repositories/db'
+import { expandRoutineIntervals } from '@/utils/routineIntervals'
 
 export type PlayerState = 'IDLE' | 'READY' | 'PLAYING' | 'PAUSED' | 'COMPLETED'
 
@@ -12,12 +13,50 @@ type PlayerOptions = {
   soundPreset?: 'punch' | 'alarm' | 'metal' | 'soft'
 }
 
+const resolveProxyBaseUrl = () => {
+  const raw = import.meta.env.VITE_UPLOAD_URL || import.meta.env.VITE_SYNC_URL || ''
+  return raw.replace(/\/$/, '')
+}
+
+const normalizeDriveUrl = (url?: string | null) => {
+  if (!url) return null
+  if (url.startsWith('blob:') || url.startsWith('data:')) return url
+  try {
+    const resolved = new URL(url)
+    if (!resolved.hostname.includes('drive.google.com')) {
+      return url
+    }
+    let id = resolved.searchParams.get('id')
+    if (!id) {
+      const match = resolved.pathname.match(/\/d\/([^/]+)/)
+      if (match) id = match[1]
+    }
+    const baseUrl = resolveProxyBaseUrl()
+    if (id && baseUrl) {
+      return `${baseUrl}/proxy?id=${encodeURIComponent(id)}`
+    }
+    return id ? `https://drive.google.com/uc?export=view&id=${id}` : url
+  } catch {
+    return url
+  }
+}
+
+const preloadImages = (urls: string[]) => {
+  urls.forEach((url) => {
+    const img = new Image()
+    img.decoding = 'async'
+    img.src = url
+  })
+}
+
 export function usePlayer(routine: Routine | null, options: PlayerOptions) {
   const [state, setState] = useState<PlayerState>('IDLE')
   const [currentIndex, setCurrentIndex] = useState(0)
   const [timeRemaining, setTimeRemaining] = useState(0)
   const [currentExercise, setCurrentExercise] = useState<Exercise | null>(null)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const [imageUrls, setImageUrls] = useState<string[]>([])
+  const [imageSlideSeconds, setImageSlideSeconds] = useState(5)
 
   const timerRef = useRef<TimerEngine | null>(null)
   const indexRef = useRef(0)
@@ -25,41 +64,114 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
   const soundRef = useRef(new SoundService())
   const lastBeepSecondRef = useRef<number | null>(null)
   const currentVideoUrlRef = useRef<string | null>(null)
+  const currentImageUrlsRef = useRef<string[]>([])
 
-  const intervals = routine?.intervals ?? []
+  const intervals = useMemo(() => expandRoutineIntervals(routine), [routine])
   const currentInterval = intervals[currentIndex]
 
-  const clearVideoUrl = useCallback(() => {
+  const blockInfo = useMemo(() => {
+    if (!routine?.blocks || routine.blocks.length === 0) {
+      if (!routine?.rounds || !routine.roundIntervalCount) {
+        return {
+          currentBlockName: null as string | null,
+          currentRound: null as number | null,
+          totalRounds: null as number | null,
+        }
+      }
+      const start = routine.roundStartIndex ?? 0
+      const total = routine.rounds
+      const size = routine.roundIntervalCount
+      if (currentIndex < start || currentIndex >= start + total * size) {
+        return {
+          currentBlockName: null as string | null,
+          currentRound: null as number | null,
+          totalRounds: total,
+        }
+      }
+      const currentRound = Math.floor((currentIndex - start) / size) + 1
+      return {
+        currentBlockName: null as string | null,
+        currentRound,
+        totalRounds: total,
+      }
+    }
+    let cursor = 0
+    for (const block of routine.blocks) {
+      const rounds = Math.max(1, block.rounds ?? 1)
+      const size = block.intervals.length
+      const total = size * rounds
+      if (total === 0) {
+        continue
+      }
+      if (currentIndex >= cursor && currentIndex < cursor + total) {
+        const round = Math.floor((currentIndex - cursor) / size) + 1
+        return {
+          currentBlockName: block.name,
+          currentRound: round,
+          totalRounds: rounds,
+        }
+      }
+      cursor += total
+    }
+    return {
+      currentBlockName: null as string | null,
+      currentRound: null as number | null,
+      totalRounds: null as number | null,
+    }
+  }, [currentIndex, routine])
+
+  const clearMediaUrls = useCallback(() => {
     if (currentVideoUrlRef.current) {
       URL.revokeObjectURL(currentVideoUrlRef.current)
       currentVideoUrlRef.current = null
     }
+    if (currentImageUrlsRef.current.length > 0) {
+      currentImageUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
+      currentImageUrlsRef.current = []
+    }
     setVideoUrl(null)
+    setImageUrls([])
   }, [])
 
   const loadExercise = useCallback(
     async (interval: Interval | undefined) => {
       if (!interval || interval.type !== 'EXERCISE' || !interval.exerciseId) {
         setCurrentExercise(null)
-        clearVideoUrl()
+        clearMediaUrls()
         return null
       }
       const exercise = await db.exercises.get(interval.exerciseId)
       if (!exercise) {
         setCurrentExercise(null)
-        clearVideoUrl()
+        clearMediaUrls()
         return null
       }
       setCurrentExercise(exercise)
-      clearVideoUrl()
+      clearMediaUrls()
       if (exercise.videoFile) {
         const url = URL.createObjectURL(exercise.videoFile)
         currentVideoUrlRef.current = url
         setVideoUrl(url)
+      } else if (exercise.videoUrl) {
+        setVideoUrl(normalizeDriveUrl(exercise.videoUrl))
       }
+      if (exercise.imageFiles && exercise.imageFiles.length > 0) {
+        const urls = exercise.imageFiles.map((file) => URL.createObjectURL(file))
+        currentImageUrlsRef.current = urls
+        setImageUrls(urls)
+        preloadImages(urls)
+      } else if (exercise.imageUrls && exercise.imageUrls.length > 0) {
+        const urls = exercise.imageUrls
+          .map((url) => normalizeDriveUrl(url))
+          .filter(Boolean) as string[]
+        currentImageUrlsRef.current = []
+        setImageUrls(urls)
+        preloadImages(urls)
+      }
+      setImageSlideSeconds(exercise.imageSlideSeconds ?? 5)
       return exercise
     },
-    [clearVideoUrl]
+    [clearMediaUrls]
   )
 
   const announceInterval = useCallback(
@@ -200,8 +312,6 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
       intervals,
       options.soundEnabled,
       options.soundVolume,
-      options.voiceEnabled,
-      options.voiceVolume,
       stopTimer,
     ]
   )
@@ -226,8 +336,8 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
     stopTimer()
     setState(routine ? 'READY' : 'IDLE')
     setCurrentIndex(0)
-    setTimeRemaining(routine?.intervals[0]?.duration ?? 0)
-  }, [routine, stopTimer])
+    setTimeRemaining(intervals[0]?.duration ?? 0)
+  }, [intervals, routine, stopTimer])
 
   const skip = useCallback(() => {
     stopTimer()
@@ -235,12 +345,22 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
       const nextIndex = currentIndex + 1
       setCurrentIndex(nextIndex)
       setTimeRemaining(intervals[nextIndex]?.duration ?? 0)
-      setState('PLAYING')
+      setState(state === 'PAUSED' ? 'PAUSED' : 'PLAYING')
     } else {
       setState('COMPLETED')
       setTimeRemaining(0)
     }
-  }, [currentIndex, intervals, stopTimer])
+  }, [currentIndex, intervals, state, stopTimer])
+
+  const previous = useCallback(() => {
+    stopTimer()
+    if (currentIndex > 0) {
+      const prevIndex = currentIndex - 1
+      setCurrentIndex(prevIndex)
+      setTimeRemaining(intervals[prevIndex]?.duration ?? 0)
+      setState(state === 'PAUSED' ? 'PAUSED' : 'PLAYING')
+    }
+  }, [currentIndex, intervals, state, stopTimer])
 
   useEffect(() => {
     indexRef.current = currentIndex
@@ -252,15 +372,15 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
       setCurrentIndex(0)
       setTimeRemaining(0)
       setCurrentExercise(null)
-      clearVideoUrl()
+      clearMediaUrls()
       return
     }
     stopTimer()
     setState('READY')
     setCurrentIndex(0)
-    setTimeRemaining(routine.intervals[0]?.duration ?? 0)
-    void loadExercise(routine.intervals[0])
-  }, [clearVideoUrl, loadExercise, routine, stopTimer])
+    setTimeRemaining(intervals[0]?.duration ?? 0)
+    void loadExercise(intervals[0])
+  }, [clearMediaUrls, loadExercise, routine, stopTimer, intervals])
 
   useEffect(() => {
     if (state === 'PLAYING' && currentInterval) {
@@ -275,14 +395,14 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
   useEffect(() => {
     return () => {
       stopTimer()
-      clearVideoUrl()
+      clearMediaUrls()
     }
-  }, [clearVideoUrl, stopTimer])
+  }, [clearMediaUrls, stopTimer])
 
   const progress = useMemo(() => {
-    if (!routine || routine.intervals.length === 0) return 0
-    return ((currentIndex + 1) / routine.intervals.length) * 100
-  }, [currentIndex, routine])
+    if (intervals.length === 0) return 0
+    return ((currentIndex + 1) / intervals.length) * 100
+  }, [currentIndex, intervals.length])
 
   return {
     state,
@@ -291,6 +411,11 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
     timeRemaining,
     progress,
     videoUrl,
+    imageUrls,
+    imageSlideSeconds,
+    currentRound: blockInfo.currentRound,
+    totalRounds: blockInfo.totalRounds,
+    currentBlockName: blockInfo.currentBlockName,
     currentIndex,
     totalIntervals: intervals.length,
     play,
@@ -298,5 +423,6 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
     resume,
     stop,
     skip,
+    previous,
   }
 }
