@@ -883,6 +883,441 @@ export function RoutineManager() {
     )
   }
 
+  const seedSeriesPlan = async (force = false) => {
+    setSeedMessage(null)
+
+    type BlockItem = {
+      name: string
+      duration?: number
+      type?: 'EXERCISE' | 'REST'
+      notes?: string
+    }
+    type DayPlan = { name: string; blocks: { name: string; rounds: number; items: BlockItem[] }[] }
+
+    const mondayWarmup: BlockItem[] = [
+      { name: 'Círculos cadera', duration: 60, notes: '10 por lado' },
+      { name: 'Cat-cow', duration: 60, notes: '10 reps' },
+      { name: "World's greatest stretch", duration: 60, notes: '3 por lado' },
+      { name: 'Clamshells', duration: 60, notes: '15 por lado' },
+      { name: 'Puentes sin peso', duration: 60, notes: '15 reps' },
+      { name: "Child's pose", duration: 60 },
+      { name: 'Cat-cow profundo', duration: 60, notes: '10 reps' },
+      { name: 'Chin tucks', duration: 60, notes: '10 x 5 seg' },
+    ]
+
+    const tuesdayWarmup: BlockItem[] = [
+      { name: 'Círculos brazos', duration: 60, notes: '10 adelante/atrás' },
+      { name: 'Shoulder dislocations', duration: 60, notes: '10 reps' },
+      { name: 'Protracción/retracción escapular', duration: 60, notes: '15 reps' },
+      { name: 'Plancha', duration: 30 },
+      { name: 'Cat-cow', duration: 60, notes: '10 reps' },
+      { name: "Child's pose", duration: 60 },
+      { name: 'Extensión torácica', duration: 60, notes: '10 reps' },
+      { name: 'Chin tucks', duration: 60, notes: '10 x 5 seg' },
+    ]
+
+    const saturdayWarmup: BlockItem[] = [
+      { name: 'Círculos cadera', duration: 60, notes: '10 por lado' },
+      { name: 'Círculos brazos', duration: 60, notes: '10 por dirección' },
+      { name: 'Cat-cow', duration: 60, notes: '10 reps' },
+      { name: 'Squat hold', duration: 30 },
+      { name: "Child's pose", duration: 90 },
+      { name: 'Cat-cow profundo', duration: 60, notes: '15 reps' },
+      { name: 'Chin tucks', duration: 60, notes: '10 x 5 seg' },
+    ]
+
+    const mondayCool: BlockItem[] = [
+      { name: 'Glúteos (figura 4)', duration: 60, notes: 'Por lado' },
+      { name: 'Flexores cadera', duration: 60, notes: 'Por lado' },
+      { name: 'Isquiotibiales', duration: 60 },
+      { name: 'Cuádriceps', duration: 45, notes: 'Por lado' },
+      { name: 'Respiración', duration: 60, notes: '10 respiraciones profundas' },
+    ]
+
+    const tuesdayCool: BlockItem[] = [
+      { name: 'Pectorales', duration: 60, notes: 'Por lado' },
+      { name: 'Tríceps', duration: 45, notes: 'Por brazo' },
+      { name: 'Bíceps', duration: 45, notes: 'Por brazo' },
+      { name: 'Hombros', duration: 45, notes: 'Por lado' },
+      { name: 'Cuello frontal', duration: 60 },
+    ]
+
+    const saturdayCool: BlockItem[] = [
+      { name: 'Piernas', duration: 90 },
+      { name: 'Torso', duration: 60 },
+      { name: 'Brazos', duration: 60 },
+      { name: 'Cuello', duration: 90 },
+    ]
+
+    const sundayCool: BlockItem[] = [
+      { name: "Child's pose", duration: 90 },
+      { name: 'Cat-cow super lento', duration: 75, notes: '15 reps · 5 seg cada fase' },
+      { name: 'Sphinx pose', duration: 60 },
+      { name: 'Legs up the wall', duration: 90 },
+      { name: 'Savasana con elongación', duration: 60 },
+    ]
+
+    const strengthPlan: DayPlan[] = [
+      {
+        name: 'Lunes — Glúteos/Piernas (Fuerza)',
+        blocks: [
+          { name: 'Calentamiento', rounds: 1, items: mondayWarmup },
+          {
+            name: 'Bloque principal',
+            rounds: 1,
+            items: [
+              {
+                name: 'Sentadilla Goblet',
+                notes: '5x12 · Tempo 3-0-2-0 · Foco: Profundidad completa, torso vertical',
+              },
+              { name: 'Descanso', duration: 90, type: 'REST' },
+              {
+                name: 'Hip Thrust',
+                notes: '5x12 · Tempo 3-0-3-0 · Foco: Contracción glúteos arriba',
+              },
+              { name: 'Descanso', duration: 90, type: 'REST' },
+              {
+                name: 'Peso Muerto Rumano',
+                notes: '4x10 · Tempo 3-0-3-0 · Foco: Cadera atrás, isquios estirados',
+              },
+              { name: 'Descanso', duration: 90, type: 'REST' },
+              {
+                name: 'Zancadas Estáticas',
+                notes: '4x10 por pierna · Tempo 2-0-2-0 · Foco: Rodilla trasera casi toca piso',
+              },
+              { name: 'Descanso', duration: 90, type: 'REST' },
+              {
+                name: 'Puentes Glúteos',
+                notes: '3x15 · Tempo 2-1-2-0 · Foco: Contracción máxima arriba',
+              },
+              { name: 'Descanso', duration: 60, type: 'REST' },
+            ],
+          },
+          { name: 'Vuelta a la calma', rounds: 1, items: mondayCool },
+        ],
+      },
+      {
+        name: 'Martes — Torso/Brazos (Hipertrofia)',
+        blocks: [
+          { name: 'Calentamiento', rounds: 1, items: tuesdayWarmup },
+          {
+            name: 'Bloque principal',
+            rounds: 1,
+            items: [
+              {
+                name: 'Flexiones',
+                notes: '5x10-12 · Tempo 3-0-2-0 · Variante: rodillas si es necesario',
+              },
+              { name: 'Descanso', duration: 90, type: 'REST' },
+              {
+                name: 'Remo Inclinado',
+                notes: '5x12 · Tempo 2-1-2-0 · Foco: Jalar con codos, retrae escápulas',
+              },
+              { name: 'Descanso', duration: 90, type: 'REST' },
+              {
+                name: 'Flexiones Cerradas',
+                notes: '4x10 · Tempo 3-0-2-0 · Foco: Codos pegados al cuerpo',
+              },
+              { name: 'Descanso', duration: 90, type: 'REST' },
+              {
+                name: 'Curl Bíceps Unilateral',
+                notes: '4x12 por brazo · Tempo 3-0-3-0 · Foco: Cero balanceo',
+              },
+              { name: 'Descanso', duration: 60, type: 'REST' },
+              {
+                name: 'Fondos Tríceps',
+                notes: '3x10-12 · Tempo 3-0-2-0 · Foco: Codos hacia atrás',
+              },
+              { name: 'Descanso', duration: 60, type: 'REST' },
+            ],
+          },
+          { name: 'Vuelta a la calma', rounds: 1, items: tuesdayCool },
+        ],
+      },
+      {
+        name: 'Miércoles — Glúteos/Piernas (Volumen)',
+        blocks: [
+          { name: 'Calentamiento', rounds: 1, items: mondayWarmup },
+          {
+            name: 'Bloque principal',
+            rounds: 1,
+            items: [
+              {
+                name: 'Zancadas Caminando',
+                notes: '5x16 (8 por pierna) · Tempo 2-0-2-0 · Foco: Torso vertical, paso largo',
+              },
+              { name: 'Descanso', duration: 90, type: 'REST' },
+              {
+                name: 'Sentadilla Sumo',
+                notes: '5x15 · Tempo 3-0-2-0 · Foco: Pies anchos, rodillas siguen puntas',
+              },
+              { name: 'Descanso', duration: 90, type: 'REST' },
+              {
+                name: 'Hip Thrust Unilateral',
+                notes: '4x10 por pierna · Tempo 3-0-3-0 · Foco: Contrae glúteo trabajando',
+              },
+              { name: 'Descanso', duration: 90, type: 'REST' },
+              {
+                name: 'Good Mornings',
+                notes: '4x12 · Tempo 3-0-3-0 · Foco: Cadera atrás, espalda recta',
+              },
+              { name: 'Descanso', duration: 90, type: 'REST' },
+              {
+                name: 'Step-Ups',
+                notes: '3x12 por pierna · Tempo 2-0-2-0 · Foco: Empujar con talón',
+              },
+              { name: 'Descanso', duration: 60, type: 'REST' },
+            ],
+          },
+          { name: 'Vuelta a la calma', rounds: 1, items: mondayCool },
+        ],
+      },
+      {
+        name: 'Jueves — Espalda/Brazos (Fuerza)',
+        blocks: [
+          { name: 'Calentamiento', rounds: 1, items: tuesdayWarmup },
+          {
+            name: 'Bloque principal',
+            rounds: 1,
+            items: [
+              {
+                name: 'Remo Unilateral',
+                notes: '5x12 por lado · Tempo 2-1-2-0 · Foco: Retrae escápula, codo alto',
+              },
+              { name: 'Descanso', duration: 90, type: 'REST' },
+              {
+                name: 'Flexiones Diamante',
+                notes: '5x8-10 · Tempo 3-0-2-0 · Foco: Manos juntas, codos pegados',
+              },
+              { name: 'Descanso', duration: 90, type: 'REST' },
+              {
+                name: 'Superman',
+                notes: '4x15 · Tempo 3-2-3-0 · Foco: Contrae lumbar + glúteos',
+              },
+              { name: 'Descanso', duration: 60, type: 'REST' },
+              {
+                name: 'Curl Bíceps Alternado',
+                notes: '4x10 por brazo · Tempo 3-1-3-0 · Foco: Pausa arriba',
+              },
+              { name: 'Descanso', duration: 60, type: 'REST' },
+              {
+                name: 'Plancha Shoulder Taps',
+                notes: '3x20 totales · Tempo controlado · Foco: Cadera sin rotar',
+              },
+              { name: 'Descanso', duration: 60, type: 'REST' },
+            ],
+          },
+          { name: 'Vuelta a la calma', rounds: 1, items: tuesdayCool },
+        ],
+      },
+      {
+        name: 'Viernes — Glúteos/Piernas (Acondicionamiento + Core)',
+        blocks: [
+          { name: 'Calentamiento', rounds: 1, items: mondayWarmup },
+          {
+            name: 'Bloque principal',
+            rounds: 1,
+            items: [
+              {
+                name: 'Hip Thrust',
+                notes: '4x15 · Tempo 2-0-2-0 · Foco: Velocidad controlada',
+              },
+              { name: 'Descanso', duration: 75, type: 'REST' },
+              {
+                name: 'Sentadilla',
+                notes: '4x20 · Tempo 2-0-2-0 · Foco: Resistencia muscular',
+              },
+              { name: 'Descanso', duration: 75, type: 'REST' },
+              {
+                name: 'Zancadas Alternas',
+                notes: '4x20 totales · Tempo rápido pero controlado · Foco: Ritmo constante',
+              },
+              { name: 'Descanso', duration: 75, type: 'REST' },
+            ],
+          },
+          {
+            name: 'Core',
+            rounds: 1,
+            items: [
+              { name: 'Dead Bugs', notes: '3x15 · Tempo 3-0-3' },
+              { name: 'Descanso', duration: 45, type: 'REST' },
+              { name: 'Plancha Lateral', notes: '3x30 seg cada lado' },
+              { name: 'Descanso', duration: 45, type: 'REST' },
+              { name: 'Hollow Body Hold', notes: '3x20 seg' },
+              { name: 'Descanso', duration: 45, type: 'REST' },
+              { name: 'Russian Twists', notes: '3x20 reps' },
+              { name: 'Descanso', duration: 45, type: 'REST' },
+            ],
+          },
+          { name: 'Vuelta a la calma', rounds: 1, items: mondayCool },
+        ],
+      },
+      {
+        name: 'Sábado — Full Body + Metabólico',
+        blocks: [
+          { name: 'Calentamiento', rounds: 1, items: saturdayWarmup },
+          {
+            name: 'Circuito A',
+            rounds: 4,
+            items: [
+              { name: 'Sentadilla Goblet', notes: '12 reps' },
+              { name: 'Flexiones', notes: '10 reps' },
+              { name: 'Zancadas Alternas', notes: '16 reps (8 por pierna)' },
+              { name: 'Remo', notes: '12 reps' },
+              { name: 'Descanso', duration: 90, type: 'REST' },
+            ],
+          },
+          {
+            name: 'Circuito Metabólico',
+            rounds: 3,
+            items: [
+              { name: 'Burpees (sin salto)', notes: '10 reps' },
+              { name: 'Mountain Climbers', notes: '20 reps' },
+              { name: 'Jumping Jacks', notes: '30 reps' },
+              { name: 'Descanso', duration: 60, type: 'REST' },
+            ],
+          },
+          {
+            name: 'Elongación espinal',
+            rounds: 1,
+            items: [
+              { name: "Child's pose", duration: 90 },
+              { name: 'Cat-cow lento', notes: '15 reps' },
+              { name: 'Legs up the wall', duration: 90 },
+            ],
+          },
+          { name: 'Vuelta a la calma', rounds: 1, items: saturdayCool },
+        ],
+      },
+      {
+        name: 'Domingo — Movilidad + Elongación + Core Suave',
+        blocks: [
+          {
+            name: 'Movilidad articular',
+            rounds: 1,
+            items: [
+              { name: 'Chin tucks', notes: '15 x 8 seg' },
+              { name: 'Rotaciones cervicales', notes: '10 por lado' },
+              { name: 'Flexión/extensión cervical', notes: '12 reps' },
+              { name: 'Círculos cadera', notes: '15 por lado' },
+              { name: 'Cat-cow profundo', notes: '20 reps' },
+              { name: 'Shoulder dislocations (palo)', notes: '20 reps' },
+              { name: "World's greatest stretch", notes: '8 por lado' },
+              { name: '90/90 hip switches', notes: '12 cambios' },
+              { name: 'Wall slides', notes: '15 reps' },
+              { name: 'Extensión torácica', notes: '15 reps' },
+            ],
+          },
+          { name: 'Elongación espinal profunda', rounds: 1, items: sundayCool },
+          {
+            name: 'Core suave',
+            rounds: 1,
+            items: [
+              { name: 'Dead bugs', notes: '2x12 · Tempo 3-0-3' },
+              { name: 'Bird dogs', notes: '2x10 por lado · Tempo 3-2-3' },
+              { name: 'Planchas', notes: '3x20 seg' },
+              { name: 'Glute bridges sin peso', notes: '2x15 · Tempo 2-1-2' },
+            ],
+          },
+        ],
+      },
+    ]
+
+    const ensureExercise = async (name: string) => {
+      const existing = await db.exercises
+        .filter((item) => item.name.toLowerCase() === name.toLowerCase())
+        .first()
+      if (existing) return existing.id
+      const id = crypto.randomUUID()
+      await db.exercises.add({
+        id,
+        name,
+        videoFile: undefined,
+        imageFiles: undefined,
+        mediaType: 'none',
+        imageSlideSeconds: 5,
+        videoUrl: '',
+        createdAt: Date.now(),
+      })
+      return id
+    }
+
+    let createdRoutines = 0
+
+    for (const day of strengthPlan) {
+      const existingRoutine = await db.routines
+        .filter((item) => item.name.toLowerCase() === day.name.toLowerCase())
+        .first()
+      if (existingRoutine && !force) {
+        continue
+      }
+      if (existingRoutine && force) {
+        await db.routines.delete(existingRoutine.id)
+      }
+
+      const blocks: RoutineBlock[] = []
+      for (const block of day.blocks) {
+        const intervals: Interval[] = []
+        for (const item of block.items) {
+          if (item.type === 'REST') {
+            intervals.push({
+              id: crypto.randomUUID(),
+              type: 'REST',
+              duration: Math.max(1, item.duration ?? 30),
+              label: 'Descanso',
+              notes: item.notes,
+            })
+          } else {
+            const exerciseId = await ensureExercise(item.name)
+            intervals.push({
+              id: crypto.randomUUID(),
+              type: 'EXERCISE',
+              duration: Math.max(0, item.duration ?? 0),
+              exerciseId,
+              notes: item.notes,
+            })
+          }
+        }
+        blocks.push({
+          id: crypto.randomUUID(),
+          name: block.name,
+          rounds: block.rounds,
+          intervals,
+        })
+      }
+
+      const intervals = expandRoutineIntervals({
+        id: crypto.randomUUID(),
+        name: day.name,
+        intervals: [],
+        blocks,
+        createdAt: 0,
+        updatedAt: 0,
+      })
+
+      const now = Date.now()
+      await db.routines.add({
+        id: crypto.randomUUID(),
+        name: day.name,
+        intervals,
+        blocks,
+        createdAt: now,
+        updatedAt: now,
+      })
+      createdRoutines += 1
+    }
+
+    await refreshExercises()
+    await loadRoutines()
+    setSeedMessage(
+      createdRoutines > 0
+        ? `Se cargaron ${createdRoutines} rutinas de series/reps.`
+        : force
+          ? 'Se reemplazaron las rutinas de series/reps.'
+          : 'Las rutinas de series/reps ya existían.'
+    )
+  }
+
   const canBuild = exercises.length > 0
 
   return (
@@ -900,6 +1335,12 @@ export function RoutineManager() {
           </Button>
           <Button onClick={() => void seedWeeklyPlan(true)} variant="secondary">
             Re-crear plan semanal
+          </Button>
+          <Button onClick={() => void seedSeriesPlan()} variant="ghost">
+            Cargar plan series/reps
+          </Button>
+          <Button onClick={() => void seedSeriesPlan(true)} variant="secondary">
+            Re-crear plan series/reps
           </Button>
           <Button onClick={() => void seedEdtPlan()} variant="ghost">
             Cargar plan EDT completo

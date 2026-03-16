@@ -79,7 +79,7 @@ export class VoiceService {
       void window.routime.tts.speak(text, {
         rate,
         volume,
-        voiceName: this.preferredVoiceName,
+        voiceName: this.preferredVoiceName ?? undefined,
       })
       this.lastSpoken = text
       return

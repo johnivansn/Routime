@@ -8,7 +8,7 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { Dropdown } from '@/components/shared/Dropdown'
 import type { Routine } from '@/types'
 import { SoundService } from '@/services/SoundService'
-import { ArrowRightLeft, Clock, Dumbbell, Image, LayoutGrid, LayoutPanelTop, Pause, Play, SkipBack, SkipForward, Square, Video, X } from 'lucide-react'
+import { ArrowRightLeft, Clock, Dumbbell, LayoutGrid, LayoutPanelTop, Pause, Play, SkipBack, SkipForward, Square, X } from 'lucide-react'
 import { db } from '@/repositories/db'
 import { expandRoutineIntervals } from '@/utils/routineIntervals'
 
@@ -45,7 +45,7 @@ export function PlayerView() {
   const [selectedId, setSelectedId] = useState<string>('')
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [soundVolume, setSoundVolume] = useState(0.18)
-  const [soundPreset, setSoundPreset] = useState('punch')
+  const [soundPreset, setSoundPreset] = useState<'punch' | 'alarm' | 'metal' | 'soft'>('punch')
   const [stageMode, setStageMode] = useState(false)
   const [confirmStopOpen, setConfirmStopOpen] = useState(false)
   const [viewMode, setViewMode] = useState<'gimnasio' | 'tablero' | 'reloj' | 'flujo'>('gimnasio')
@@ -70,7 +70,12 @@ export function PlayerView() {
     if (storedSoundEnabled) {
       setSoundEnabled(storedSoundEnabled === 'true')
     }
-    if (storedSoundPreset) {
+    if (
+      storedSoundPreset === 'punch' ||
+      storedSoundPreset === 'alarm' ||
+      storedSoundPreset === 'metal' ||
+      storedSoundPreset === 'soft'
+    ) {
       setSoundPreset(storedSoundPreset)
     }
     const storedViewMode = window.localStorage.getItem('routime:viewMode')
@@ -153,7 +158,6 @@ export function PlayerView() {
     totalRounds,
     currentBlockName,
     currentIndex,
-    totalIntervals,
     play,
     pause,
     resume,
@@ -166,8 +170,11 @@ export function PlayerView() {
     soundPreset,
   })
 
-  const displaySeconds = Math.max(0, Math.ceil(timeRemaining))
-  const isEndingSoon = displaySeconds > 0 && displaySeconds <= 5
+  const intervalDuration = currentInterval?.duration ?? 0
+  const isTimedInterval = intervalDuration > 0
+  const displaySeconds = isTimedInterval ? Math.max(0, Math.ceil(timeRemaining)) : 0
+  const timeLabel = isTimedInterval ? formatTime(displaySeconds) : '00:00'
+  const isEndingSoon = isTimedInterval && displaySeconds > 0 && displaySeconds <= 5
   const [imageIndex, setImageIndex] = useState(0)
   const activeImageUrl = imageUrls.length > 0 ? imageUrls[imageIndex] : null
   const fallbackImageUrl = useMemo(() => {
@@ -347,10 +354,6 @@ export function PlayerView() {
 
   const renderMetaChips = (size: 'sm' | 'md' = 'sm') => {
     if (!sectionText && !roundText) return null
-    const base =
-      size === 'md'
-        ? 'text-sm sm:text-base px-4 py-2 sm:px-5 sm:py-2.5 font-semibold'
-        : 'text-[10px] px-2.5 py-1'
     const chipClass =
       size === 'md'
         ? 'rounded-full border px-4 py-2 sm:px-5 sm:py-2.5 text-sm sm:text-base font-semibold shadow-sm'
@@ -421,20 +424,6 @@ export function PlayerView() {
     return (
       <span className="inline-flex items-center rounded-full border border-ink-700/60 bg-ink-900/50 px-4 py-2 text-sm font-semibold text-ink-100">
         {type}
-      </span>
-    )
-  }
-
-  const renderMediaIcon = (size: 'sm' | 'md' = 'sm') => {
-    if (!hasMedia) return null
-    const Icon = videoUrl ? Video : Image
-    const base =
-      size === 'md'
-        ? 'h-10 w-10 rounded-full border border-ink-700/60 bg-ink-900/50'
-        : 'h-8 w-8 rounded-full border border-ink-700/60 bg-ink-900/50'
-    return (
-      <span className={`inline-flex items-center justify-center ${base}`}>
-        <Icon className={size === 'md' ? 'h-5 w-5 text-ink-200' : 'h-4 w-4 text-ink-200'} />
       </span>
     )
   }
@@ -522,7 +511,7 @@ export function PlayerView() {
               isEndingSoon ? 'text-ember-500' : 'text-ink-50'
             }`}
           >
-            {formatTime(displaySeconds)}
+            {timeLabel}
           </div>
             <div className="space-y-2">
               <p className="font-display text-2xl text-ink-50">
@@ -568,7 +557,7 @@ export function PlayerView() {
             <div className="surface-inset mt-2 rounded-2xl border p-3 sm:p-4">
               {renderMetaChips('md')}
               <div className={`mt-2 timer-display ${isEndingSoon ? 'text-ember-500' : 'text-ink-50'}`}>
-                {formatTime(displaySeconds)}
+                {timeLabel}
               </div>
             </div>
           </div>
@@ -602,7 +591,7 @@ export function PlayerView() {
             <div className="surface-inset mt-4 rounded-2xl border p-3 sm:p-4">
               {renderMetaChips()}
               <div className={`mt-2 timer-display ${isEndingSoon ? 'text-ember-500' : 'text-ink-50'}`}>
-                {formatTime(displaySeconds)}
+                {timeLabel}
               </div>
               {nextExerciseName && (
                 <div className="mt-2 space-y-1">
@@ -651,7 +640,7 @@ export function PlayerView() {
             <div>
               {renderMetaChips()}
               <div className={`mt-2 timer-display ${isEndingSoon ? 'text-ember-500' : 'text-ink-50'}`}>
-                {formatTime(displaySeconds)}
+                {timeLabel}
               </div>
               {nextExerciseName && (
                 <div className="mt-2 space-y-1">
@@ -689,7 +678,7 @@ export function PlayerView() {
           <div className="text-right">
             {renderMetaChips()}
             <div className={`mt-2 timer-display ${isEndingSoon ? 'text-ember-500' : 'text-ink-50'}`}>
-              {formatTime(displaySeconds)}
+              {timeLabel}
             </div>
             {nextExerciseName && (
               <div className="mt-2 space-y-1">
@@ -780,7 +769,7 @@ export function PlayerView() {
                         isEndingSoon ? 'text-ember-500' : 'text-ink-50'
                       }`}
                     >
-                      {formatTime(displaySeconds)}
+                      {timeLabel}
                     </div>
                     </div>
                     {roundBadge}
@@ -826,7 +815,7 @@ export function PlayerView() {
                           {renderMetaChips('md')}
                           <div className="mt-2 flex flex-wrap items-center gap-3">
                             <div className={`timer-display-xl ${isEndingSoon ? 'text-ember-500' : 'text-ink-50'}`}>
-                              {formatTime(displaySeconds)}
+                              {timeLabel}
                             </div>
                             {renderMediaBadgeLarge()}
                           </div>
@@ -871,7 +860,7 @@ export function PlayerView() {
                   )}
                   <div className="surface-inset mt-4 rounded-2xl border p-3 sm:p-4">
                   <div className={`mt-2 timer-display-xl ${isEndingSoon ? 'text-ember-500' : 'text-ink-50'}`}>
-                    {formatTime(displaySeconds)}
+                    {timeLabel}
                   </div>
                   {roundBadge}
                   {renderMetaChips('md')}
@@ -911,7 +900,7 @@ export function PlayerView() {
                     <div className="text-right">
                     <div className="mt-2 flex flex-wrap items-center justify-end gap-3">
                       <div className={`timer-display-xl ${isEndingSoon ? 'text-ember-500' : 'text-ink-50'}`}>
-                        {formatTime(displaySeconds)}
+                        {timeLabel}
                       </div>
                       {renderMediaBadgeLarge()}
                     </div>
@@ -1189,7 +1178,11 @@ export function PlayerView() {
                 <span className="form-label">Preset de sonido</span>
                 <Dropdown
                   value={soundPreset}
-                  onChange={setSoundPreset}
+                  onChange={(value) => {
+                    if (value === 'punch' || value === 'alarm' || value === 'metal' || value === 'soft') {
+                      setSoundPreset(value)
+                    }
+                  }}
                   options={[
                     { value: 'punch', label: 'Punch' },
                     { value: 'alarm', label: 'Alarma' },

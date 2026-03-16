@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
 import { DndContext, closestCenter } from '@dnd-kit/core'
+import type { DragEndEvent } from '@dnd-kit/core/dist/types'
 import {
   SortableContext,
   arrayMove,
@@ -48,6 +49,7 @@ type NumberStepperProps = {
   onChange: (value: number) => void
   className?: string
   ariaLabel: string
+  disabled?: boolean
 }
 
 const clampNumber = (value: number, min?: number, max?: number) => {
@@ -64,6 +66,7 @@ function NumberStepper({
   onChange,
   className,
   ariaLabel,
+  disabled = false,
 }: NumberStepperProps) {
   const handleChange = (next: number) => {
     const safe = Number.isNaN(next) ? min ?? 0 : next
@@ -78,23 +81,26 @@ function NumberStepper({
         max={max}
         value={value}
         onChange={(event) => handleChange(Number(event.target.value))}
-        className="input-field pr-9"
+        className="input-field pr-9 disabled:cursor-not-allowed disabled:opacity-60"
         aria-label={ariaLabel}
+        disabled={disabled}
       />
       <div className="absolute right-1 top-1 bottom-1 flex flex-col">
         <button
           type="button"
           onClick={() => handleChange(value + step)}
-          className="flex h-1/2 w-7 items-center justify-center rounded-t-md text-ink-300 transition hover:text-ink-50"
+          className="flex h-1/2 w-7 items-center justify-center rounded-t-md text-ink-300 transition hover:text-ink-50 disabled:cursor-not-allowed disabled:opacity-40"
           aria-label="Incrementar"
+          disabled={disabled}
         >
           <ChevronUp className="h-3.5 w-3.5" />
         </button>
         <button
           type="button"
           onClick={() => handleChange(value - step)}
-          className="flex h-1/2 w-7 items-center justify-center rounded-b-md text-ink-300 transition hover:text-ink-50"
+          className="flex h-1/2 w-7 items-center justify-center rounded-b-md text-ink-300 transition hover:text-ink-50 disabled:cursor-not-allowed disabled:opacity-40"
           aria-label="Disminuir"
+          disabled={disabled}
         >
           <ChevronDown className="h-3.5 w-3.5" />
         </button>
@@ -150,6 +156,7 @@ export const RoutineBuilder = forwardRef<RoutineBuilderHandle, RoutineBuilderPro
   const [exerciseId, setExerciseId] = useState('')
   const [duration, setDuration] = useState(30)
   const [restDuration, setRestDuration] = useState(20)
+  const [exerciseTimed, setExerciseTimed] = useState(true)
   const [intervalNotes, setIntervalNotes] = useState('')
   const [noteSuggestions, setNoteSuggestions] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -214,6 +221,7 @@ export const RoutineBuilder = forwardRef<RoutineBuilderHandle, RoutineBuilderPro
     setExerciseId('')
     setDuration(30)
     setRestDuration(20)
+    setExerciseTimed(true)
     setIntervalNotes('')
     setError(null)
     setNewBlockName('')
@@ -261,6 +269,7 @@ export const RoutineBuilder = forwardRef<RoutineBuilderHandle, RoutineBuilderPro
     setExerciseId('')
     setDuration(30)
     setRestDuration(20)
+    setExerciseTimed(true)
     setIntervalNotes('')
     setError(null)
     setNewBlockName('')
@@ -334,7 +343,8 @@ export const RoutineBuilder = forwardRef<RoutineBuilderHandle, RoutineBuilderPro
       setError('Selecciona un ejercicio.')
       return
     }
-    if (!isValidIntervalDuration(restDuration)) {
+    const effectiveDuration = exerciseTimed ? duration : 0
+    if (exerciseTimed && !isValidIntervalDuration(duration)) {
       setError('Duración inválida (1-600 segundos).')
       return
     }
@@ -363,7 +373,7 @@ export const RoutineBuilder = forwardRef<RoutineBuilderHandle, RoutineBuilderPro
                 {
                   id: crypto.randomUUID(),
                   type: 'EXERCISE',
-                  duration,
+                  duration: effectiveDuration,
                   exerciseId,
                   notes: note || undefined,
                 },
@@ -380,7 +390,7 @@ export const RoutineBuilder = forwardRef<RoutineBuilderHandle, RoutineBuilderPro
       setError('Crea un bloque antes de agregar intervalos.')
       return
     }
-    if (!isValidIntervalDuration(duration)) {
+    if (!isValidIntervalDuration(restDuration)) {
       setError('Duración inválida (1-600 segundos).')
       return
     }
@@ -436,7 +446,9 @@ export const RoutineBuilder = forwardRef<RoutineBuilderHandle, RoutineBuilderPro
     )
   }
 
-  const handleActiveBlockDragEnd = (event: { active: { id: string }; over: { id: string } | null }) => {
+  const handleActiveBlockDragEnd = (
+    event: DragEndEvent | { active: { id: string }; over: { id: string } | null }
+  ) => {
     if (!event.over || !activeBlock) return
     const activeIndex = activeBlock.intervals.findIndex((interval) => interval.id === event.active.id)
     const overIndex = activeBlock.intervals.findIndex((interval) => interval.id === event.over?.id)
@@ -677,7 +689,25 @@ export const RoutineBuilder = forwardRef<RoutineBuilderHandle, RoutineBuilderPro
                   onChange={setDuration}
                   className="w-full"
                   ariaLabel="Duración del ejercicio en segundos"
+                  disabled={!exerciseTimed}
                 />
+                <label className="flex items-center gap-2 text-xs text-ink-300">
+                  <input
+                    type="checkbox"
+                    checked={!exerciseTimed}
+                    onChange={(event) => {
+                      const nextUntimed = event.target.checked
+                      setExerciseTimed(!nextUntimed)
+                      if (nextUntimed) {
+                        setDuration(0)
+                      } else if (duration <= 0) {
+                        setDuration(30)
+                      }
+                    }}
+                    className="h-3.5 w-3.5 rounded border-ink-500 bg-ink-900 text-accent-500"
+                  />
+                  Sin tiempo (series/reps)
+                </label>
               </label>
             </div>
 

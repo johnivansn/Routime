@@ -199,7 +199,8 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
       stopTimer()
       lastBeepSecondRef.current = null
       activeIntervalIdRef.current = interval.id
-      setTimeRemaining(interval.duration)
+      const durationSeconds = Math.max(0, interval.duration ?? 0)
+      setTimeRemaining(durationSeconds)
 
       if (options.soundEnabled) {
         await soundRef.current.unlock()
@@ -242,8 +243,12 @@ export function usePlayer(routine: Routine | null, options: PlayerOptions) {
         }
       }
 
+      if (durationSeconds <= 0) {
+        return
+      }
+
       timerRef.current = new TimerEngine(
-        interval.duration,
+        durationSeconds,
         (remainingSeconds) => {
           setTimeRemaining(remainingSeconds)
           const currentSecond = Math.max(0, Math.ceil(remainingSeconds))

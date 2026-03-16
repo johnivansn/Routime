@@ -24,6 +24,7 @@ export function IntervalItem({
   onChangeDuration,
 }: IntervalItemProps) {
   const title = interval.type === 'REST' ? 'Descanso' : exercise?.name ?? 'Ejercicio'
+  const isUntimed = interval.type === 'EXERCISE' && interval.duration <= 0
 
   return (
     <div className="surface-card flex flex-wrap items-center justify-between gap-3 px-3 py-3 sm:gap-4 sm:px-4">
@@ -40,16 +41,38 @@ export function IntervalItem({
       </div>
 
       <div className="flex items-center gap-3">
-        <input
-          type="number"
-          min={1}
-          max={600}
-          value={interval.duration}
-          onChange={(event) => onChangeDuration(interval.id, Number(event.target.value))}
-          className="input-field w-24 px-3 py-2 text-sm"
-          disabled={readOnly}
-        />
-        <span className="text-xs text-ink-400">seg</span>
+        {interval.type === 'EXERCISE' && !readOnly && (
+          <label className="flex items-center gap-2 text-xs text-ink-300">
+            <input
+              type="checkbox"
+              checked={isUntimed}
+              onChange={(event) => {
+                const nextUntimed = event.target.checked
+                onChangeDuration(interval.id, nextUntimed ? 0 : 30)
+              }}
+              className="h-3.5 w-3.5 rounded border-ink-500 bg-ink-900 text-accent-500"
+            />
+            Sin tiempo
+          </label>
+        )}
+        {isUntimed ? (
+          <span className="rounded-full border border-ink-700/60 bg-ink-900/50 px-3 py-1 text-xs text-ink-200">
+            Sin tiempo
+          </span>
+        ) : (
+          <>
+            <input
+              type="number"
+              min={1}
+              max={600}
+              value={interval.duration}
+              onChange={(event) => onChangeDuration(interval.id, Number(event.target.value))}
+              className="input-field w-24 px-3 py-2 text-sm"
+              disabled={readOnly}
+            />
+            <span className="text-xs text-ink-400">seg</span>
+          </>
+        )}
         {!readOnly && (
           <Button
             variant="ghost"

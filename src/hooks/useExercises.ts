@@ -183,9 +183,9 @@ export function useExercises() {
 
   const removeExercise = useCallback(async (id: string) => {
     await db.exercises.delete(id)
-    const url = urlsRef.current.get(id)
-    if (url) {
-      URL.revokeObjectURL(url)
+    const urls = urlsRef.current.get(id)
+    if (urls) {
+      urls.forEach((url) => URL.revokeObjectURL(url))
       urlsRef.current.delete(id)
     }
     setExercises((prev) => prev.filter((item) => item.id !== id))
