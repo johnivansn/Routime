@@ -15,6 +15,9 @@ dist-ssr
 # Env files
 .env
 .env.*.local
+server/.env
+server/oauth-token.json
+server/service-account.json
 
 # Editor directories and files
 .vscode/*
